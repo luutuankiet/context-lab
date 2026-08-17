@@ -1,0 +1,25 @@
+[# before_after_code.j2 — stacked before/after code comparison.
+   4/7 surveyed PRs used this. For inline file:line citations,
+   prefer the code_expand filter with annotate-mapped BEFORE/AFTER labels.
+
+   Variables expected in scope:
+     lang:         language tag for the fenced block (e.g. 'sql', 'py', 'ts')
+     before_code:  string contents of the pre-change snippet
+     after_code:   string contents of the post-change snippet
+
+   Tip: load from disk to avoid bloating template:
+     [% set before_code = load_text('snippets/q_before.sql') %]
+     [% set after_code = load_text('snippets/q_after.sql') %]
+#]
+
+**Before:**
+
+```[[ lang ]]
+[[ before_code ]]
+```
+
+**After:**
+
+```[[ lang ]]
+[[ after_code ]]
+```
