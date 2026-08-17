@@ -53,5 +53,8 @@ service-account*.json
 *.bak
 *.tmp
 *.log
+# Scratch and git worktrees, by local convention. Also keeps the third-party
+# gate's untracked-file scan from descending into a nested checkout.
+tmp/
 node_modules/
 __pycache__/

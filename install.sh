@@ -145,6 +145,13 @@ install_plugin() {
   step "3. marketplace plugin"
   [ "$DO_PLUGIN" -eq 1 ] || { warn "skipped (--no-plugin)"; return 0; }
 
+  # This is the hydration step for third-party skills: they are installed onto
+  # the host from upstream, never copied into this repo. docs/third-party-skills.md
+  # records which upstream, at which sha, under which licence -- and
+  # scripts/third-party-gate.sh asserts that this id and that file agree.
+  # The id stays hardcoded here, at the point of use: there is exactly one
+  # upstream, and a manifest read by two scripts would be a second settings
+  # format bought for nothing.
   local plugin="mattpocock-skills@claude-plugins-official"
   local marketplace="${plugin##*@}"
 

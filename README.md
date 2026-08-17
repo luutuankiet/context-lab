@@ -56,6 +56,24 @@ predecessor repo drifted.
 Skills that encode fleet topology do not live here. They live in the private
 companion repo.
 
+## Third-party skills
+
+**This repo contains zero third-party bytes**, and that is checkable:
+
+```bash
+./scripts/third-party-gate.sh
+```
+
+Skills written by other people are *pointed at*, never copied in. If you came
+looking for `wayfinder/` or `grilling/` and did not find them, that is why —
+they are upstream, they are excellent, and `install.sh` installs them rather
+than this repo forking them. The pointer, the recorded sha, the licence and
+what a subscription can and cannot do are all in
+[`docs/third-party-skills.md`](docs/third-party-skills.md).
+
+The boundary is one question: **did I write it?** Everything here is
+owner-authored. Everything that is not is a row in that table.
+
 ## Status
 
 Phase 1 scaffolding. The trees exist; the contents arrive in later phases:
