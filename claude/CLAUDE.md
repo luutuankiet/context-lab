@@ -1,9 +1,4 @@
-# User-tier memory
+@RTK.md
 
-NOT YET POPULATED — Phase 1 stub.
-
-This file becomes the memory that applies in **every repo on every host**. It is
-linked to `~/.claude/CLAUDE.md` by `install.sh`.
-
-Keep it small. Anything that is true of only one repo belongs in that repo's own
-`AGENTS.md`, not here.
+- Scratch, prototypes and worktrees should be anchored to `./tmp/` inside the repo. Anything I might want to look at later goes in the repo I am working in, at `<repo root>/tmp/` then just give me the abspath anytime you want me to review anything/ report anything
+- gh cli is  already authenticated in my account luutuankiet

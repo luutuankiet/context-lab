@@ -1,1 +1,57 @@
-{}
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "deny": [
+      "AskUserQuestion",
+      "LSP",
+      "Monitor",
+      "NotebookEdit",
+      "PushNotification",
+      "Workflow"
+    ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/token-tracker.sh UserPromptSubmit",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/token-tracker.sh PostToolUse",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline.sh",
+    "padding": 0
+  },
+  "effortLevel": "high",
+  "outputStyle": "default",
+  "enabledPlugins": {
+    "mattpocock-skills@claude-plugins-official": true
+  },
+  "cleanupPeriodDays": 365,
+  "autoCompactEnabled": false,
+  "autoMemoryEnabled": false,
+  "remoteControlAtStartup": true,
+  "fileCheckpointingEnabled": false,
+  "skipDangerousModePermissionPrompt": true,
+  "skipAutoPermissionPrompt": true,
+  "autoScrollEnabled": true,
+  "agentPushNotifEnabled": true,
+  "tui": "fullscreen"
+}
