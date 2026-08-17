@@ -55,3 +55,6 @@ service-account*.json
 *.log
 node_modules/
 __pycache__/
+
+# Scratch and worktree anchor — build junk and scratch is all .gitignore is for
+tmp/
