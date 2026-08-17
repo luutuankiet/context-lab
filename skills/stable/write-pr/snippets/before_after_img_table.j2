@@ -1,0 +1,15 @@
+[# before_after_img_table.j2 — 2-col before/after image comparison.
+   4/7 surveyed PRs used this for visual change demos.
+
+   Convention: image src URLs come from GitHub's paste-to-PR-body auto-upload.
+   When you paste an image into the PR body editor on github.com, it uploads
+   to user-attachments and returns a URL like 'https://github.com/user-attachments/...'.
+   Capture those URLs and pass them in as before_src / after_src.
+
+   Variables expected in scope:
+     before_alt, before_src, after_alt, after_src  (all strings)
+#]
+
+| Before | After |
+| --- | --- |
+| <img alt="[[ before_alt ]]" src="[[ before_src ]]" /> | <img alt="[[ after_alt ]]" src="[[ after_src ]]" /> |

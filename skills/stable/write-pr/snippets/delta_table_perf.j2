@@ -1,0 +1,22 @@
+[# delta_table_perf.j2 — generic before/after comparison block.
+   Use for any side-by-side compare: perf optimizations, config migrations,
+   schema diffs, error counts before/after a fix. Replaces the dbt-specific
+   ci_failure_section.j2 from v0.1.0.
+
+   Variables expected in scope:
+     before_rows:   array of {metric, value} (or any same-shape pair w/ stable key)
+     after_rows:    array of {metric, value} (same shape as before_rows)
+     section_title: H3 heading text (default 'Before / After')
+
+   The filter pairs rows by the `metric` field and computes a Δ column:
+     - both numeric:  '+15 (+12%)' / '-1395 (-96%)' / '+0' for no change
+     - missing side:  'added' or 'removed' (+ '_(n/a)_' placeholder for the value)
+     - strings:       'changed' if different, '' if identical
+
+   Override the key/value field names if your evidence JSON uses different keys:
+     [[ before | delta_table(after, {key: 'endpoint', value: 'p95_ms'}) ]]
+#]
+
+### [[ section_title | default('Before / After') ]]
+
+[[ before_rows | delta_table(after_rows) ]]

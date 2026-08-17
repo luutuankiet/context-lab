@@ -1,0 +1,22 @@
+{
+  "summary": [
+    {"metric": "Wall time before", "value": "1450ms"},
+    {"metric": "Wall time after", "value": "55ms"},
+    {"metric": "Reduction", "value": "96%"}
+  ],
+  "validation": [
+    {"test_name": "test_widget_cache_hit", "status": "pass", "duration_ms": 12},
+    {"test_name": "test_widget_cache_miss", "status": "pass", "duration_ms": 18},
+    {"test_name": "test_widget_eviction", "status": "pass", "duration_ms": 9}
+  ],
+  "before": [
+    {"metric": "p95 latency (ms)", "value": 1450},
+    {"metric": "errors/min", "value": 12},
+    {"metric": "cache region", "value": "us-east"}
+  ],
+  "after": [
+    {"metric": "p95 latency (ms)", "value": 55},
+    {"metric": "errors/min", "value": 0},
+    {"metric": "cache region", "value": "global"}
+  ]
+}
