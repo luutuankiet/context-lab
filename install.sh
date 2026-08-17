@@ -61,8 +61,14 @@ LINKS=(
 # host forever.
 #   enabledMcpjsonServers — ["proxy"], a dangling reference to a .mcp.json
 #   server that no longer exists; the proxy is registered at account level now.
+#   agent — "gsd-lite", the retired default agent. Found live at user tier on
+#   joon during the fleet rollout, pinning every session there to a 10 KB fork
+#   of an agent file this effort retires. It is not in sandbox-cc, so freezing
+#   that repo does not reach it. Unset rather than owned: the target state is no
+#   agent default at all, and agents are skills.
 SETTINGS_UNSET=(
   enabledMcpjsonServers
+  agent
 )
 
 # Binaries the user tier genuinely needs.
@@ -140,6 +146,7 @@ install_plugin() {
   [ "$DO_PLUGIN" -eq 1 ] || { warn "skipped (--no-plugin)"; return 0; }
 
   local plugin="mattpocock-skills@claude-plugins-official"
+  local marketplace="${plugin##*@}"
 
   if ! command -v claude >/dev/null 2>&1; then
     warn "claude CLI not on PATH; cannot install $plugin"
@@ -151,12 +158,35 @@ install_plugin() {
   # the plugin has to be installed explicitly.
   if claude plugin list 2>/dev/null | grep -q "mattpocock-skills"; then
     ok "$plugin installed"
-  elif mutating; then
-    claude plugin install "$plugin" && ok "$plugin installed"
-  elif [ "$MODE" = check ]; then
-    bad "$plugin not installed"
+    return 0
+  fi
+
+  if [ "$MODE" = check ]; then bad "$plugin not installed"; return 0; fi
+  if [ "$MODE" = dryrun ]; then would "claude plugin install $plugin"; return 0; fi
+
+  # Nothing below may abort the run. This step used to be a bare
+  # `claude plugin install "$plugin" && ok ...`, which under `set -e` exits the
+  # whole installer when the install fails -- observed on a host that had never
+  # fetched the marketplace, leaving it with rtk initialised and no symlinks, no
+  # settings merge and no shell exports. A half-configured host is worse than a
+  # reported failure, because nothing announces it.
+  local out
+  if out=$(claude plugin install "$plugin" 2>&1); then
+    ok "$plugin installed"
+    return 0
+  fi
+  printf '%s\n' "$out" | sed 's/^/        /'
+
+  # A stale marketplace cache reports the plugin as "not found in marketplace"
+  # rather than as a fetch error, so refresh once and retry before believing it.
+  # That was the real cause on all three hosts rolled out after thinkpad.
+  warn "refreshing the marketplace cache and retrying once"
+  claude plugin marketplace update "$marketplace" >/dev/null 2>&1 || true
+  if out=$(claude plugin install "$plugin" 2>&1); then
+    ok "$plugin installed (after a marketplace refresh)"
   else
-    would "claude plugin install $plugin"
+    printf '%s\n' "$out" | sed 's/^/        /'
+    bad "$plugin could not be installed; the rest of the tier is still applied"
   fi
 }
 

@@ -22,11 +22,12 @@ fresh() {
   export CLAUDE_CONFIG_DIR="$T/home/.claude"
   export SHELL=/bin/zsh   # pin the login shell so the rc target is deterministic
   # A realistic pre-existing settings.json: rtk owns PreToolUse, the dead
-  # enabledMcpjsonServers key is present, and there is a host-local pref
+  # enabledMcpjsonServers and agent keys are present, and there is a host-local pref
   # (verbose) that we do not own and must not touch.
   printf '%s\n' \
     '{' \
     '  "enabledMcpjsonServers": ["proxy"],' \
+    '  "agent": "gsd-lite",' \
     '  "hooks": { "PreToolUse": [ { "matcher": "Bash", "hooks": [ { "type": "command", "command": "/rtk/hook.sh" } ] } ] },' \
     '  "verbose": false,' \
     '  "effortLevel": "low"' \
@@ -57,6 +58,8 @@ assert "CLAUDE.md points into the clone" "$REPO/claude/CLAUDE.md" "$(readlink -f
 assert "token-tracker.sh is a symlink" "link" "$([ -L "$CLAUDE_CONFIG_DIR/hooks/token-tracker.sh" ] && echo link || echo no)"
 assert "dead enabledMcpjsonServers key removed" "false" \
   "$(jq -r 'has("enabledMcpjsonServers")' "$CLAUDE_CONFIG_DIR/settings.json")"
+assert "retired agent default removed" "false" \
+  "$(jq -r 'has("agent")' "$CLAUDE_CONFIG_DIR/settings.json")"
 assert "rtk's PreToolUse hook survived" "/rtk/hook.sh" \
   "$(jq -r '.hooks.PreToolUse[0].hooks[0].command' "$CLAUDE_CONFIG_DIR/settings.json")"
 assert "our UserPromptSubmit hook installed" "1" \
