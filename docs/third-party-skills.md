@@ -1,3 +1,9 @@
+---
+title: Third-party skills
+summary: why no skill written by someone else is vendored here, which upstream collections are pointed at, and how to hydrate them on a host
+verified: 2026-08-18
+---
+
 # Third-party skills
 
 > **This repo contains zero third-party bytes.** Skills written by other people

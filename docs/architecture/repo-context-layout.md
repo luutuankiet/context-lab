@@ -1,7 +1,7 @@
 ---
 title: How this repo holds its own context
 covers: where agent-facing context lives in this repo, what is always loaded, and how the generated index stays honest
-verified: 2026-08-17
+verified: 2026-08-18
 ---
 
 # How this repo holds its own context
@@ -41,14 +41,20 @@ contract — it was a page, and it belongs in `docs/`.
 ## The docs index is generated
 
 ```sh
-scripts/gen-docs-index.sh            # write docs/README.md
-scripts/gen-docs-index.sh --check    # exit 1 if it is stale
+scripts/gen-docs-index.sh            # write every index
+scripts/gen-docs-index.sh --check    # exit 1 if any of them is stale
 ```
 
 One source of truth — the frontmatter on each page — rendered into the block
-between the two marker comments in `docs/README.md`. It is dependency-free POSIX
-shell plus `awk`, because this repo has no Node toolchain and reaching for a static
-site generator to render one list would be absurd.
+between the two marker comments in **three** files: `docs/README.md` and the two
+skill bodies under `.claude/skills/`. It is dependency-free POSIX shell plus
+`awk`, because this repo has no Node toolchain and reaching for a static site
+generator to render one list would be absurd.
+
+`scripts/gen-docs-index.sh` is a three-line wrapper. The generator itself is
+`skills/stable/repo-context-audit/scripts/gen-docs-index.sh`, because a generator
+carries a schema — the marker string, the frontmatter keys, the collections — and
+a schema has one home. The lab runs the payload it ships.
 
 **Never hand-maintain an index.** A hand-written one silently orphans pages: the
 page still exists, nothing links to it, and nobody notices for a year. That is the
@@ -61,6 +67,8 @@ Frontmatter is flat `key: value`, one per line, between `---` fences:
 | `docs/architecture/` | `title`, `covers`, `verified` |
 | `docs/traps/` | `symptom`, `area`, `verified` |
 | `docs/reference/` | `title`, `summary`, `verified` |
+| `docs/*.md` — a long-form guide | `title`, `summary`, `verified` |
+| `docs/adr/` | none; the first `# ` heading is the entry |
 
 `covers` and `symptom` are **search keys**, not topic names. They are written the
 way a frustrated person would phrase the thing they are looking for, because that
@@ -89,8 +97,16 @@ request links them.
 - **No hook.** Hooks here are installed at *user* tier, fleet-wide, so a
   format gate written as a hook would fire on every repo — including every repo
   that never opted in.
-- **No per-entry operational-cache skills yet.** The layout allows a repo to keep
-  an expensive-to-rediscover recipe as one small skill per entry under its own
-  `.claude/skills/`. This repo has none, and per-repo skills are **never** linked
-  into the user-level skills directory: the linker flattens by directory name,
-  which would leak one project's recipes into every session on every host.
+- **No per-entry operational-cache skills.** The layout allows a repo to keep an
+  expensive-to-rediscover recipe as one small skill per entry under its own
+  `.claude/skills/`. This repo has none — measured across the fleet, that shape
+  yields roughly two admissible skills across fifty working-note directories, so
+  it is a gated exception rather than a tier. What is under `.claude/skills/`
+  here is the standard pair: `codebase-map` and `repo-maintenance`, each a short
+  router around a generated table. **They are a build artifact, not a fifth place
+  knowledge is stored** — every fact in them is in `docs/` — which is why
+  [ADR 0004](../adr/0004-project-context-lives-in-the-repo-in-four-places.md)
+  still says four places and needs no amendment.
+- **Per-repo skills are never linked into the user-level skills directory.** The
+  linker flattens by directory name, which would leak one project's recipes into
+  every session on every host.
