@@ -141,35 +141,89 @@ install_rtk() {
 
 # ------------------------------------------------------------- 3. plugin -----
 
+# Two plugins, one mechanism. The upstream one hydrates third-party skills onto
+# the host (docs/third-party-skills.md records which upstream, at which sha,
+# under which licence -- scripts/third-party-gate.sh asserts that id and that
+# file agree). The second is this repo: skills/stable/ ships as the `context-lab`
+# plugin out of a marketplace whose source is *this clone*, so the fleet update
+# verb stays `git pull` and drift stays visible in `git status` (ADR 0006).
+#
+# Each spec is `plugin|marketplace|source`. An empty source means the marketplace
+# is already known to the CLI and must not be added. Written as a newline list
+# and read with `while read`, not an array: bash 3.2 on m3 makes "${arr[@]}" on
+# an empty array fatal under `set -u`, and a plain string has no such edge.
+PLUGIN_SPECS="mattpocock-skills|claude-plugins-official|
+context-lab|context-lab|\$REPO"
+
 install_plugin() {
-  step "3. marketplace plugin"
+  step "3. marketplace plugins"
   [ "$DO_PLUGIN" -eq 1 ] || { warn "skipped (--no-plugin)"; return 0; }
 
-  # This is the hydration step for third-party skills: they are installed onto
-  # the host from upstream, never copied into this repo. docs/third-party-skills.md
-  # records which upstream, at which sha, under which licence -- and
-  # scripts/third-party-gate.sh asserts that this id and that file agree.
-  # The id stays hardcoded here, at the point of use: there is exactly one
-  # upstream, and a manifest read by two scripts would be a second settings
-  # format bought for nothing.
-  local plugin="mattpocock-skills@claude-plugins-official"
-  local marketplace="${plugin##*@}"
-
   if ! command -v claude >/dev/null 2>&1; then
-    warn "claude CLI not on PATH; cannot install $plugin"
+    warn "claude CLI not on PATH; no plugin can be installed"
     return 0
   fi
 
-  # The enabledPlugins key in settings.json only flips a switch. On a host that
-  # has never fetched the marketplace there is nothing for it to switch on, so
-  # the plugin has to be installed explicitly.
-  if claude plugin list 2>/dev/null | grep -q "mattpocock-skills"; then
-    ok "$plugin installed"
+  # One `plugin list` for the whole step: it shells out to the CLI, and the set
+  # of installed plugins cannot change while this function runs.
+  local installed
+  installed=$(claude plugin list 2>/dev/null || true)
+
+  # A here-string, not a pipe: a piped `while read` runs in a subshell, and every
+  # bad() inside it would increment a FAILURES that dies with that subshell --
+  # leaving `--check` exiting 0 on a host with no plugins at all.
+  while IFS='|' read -r plugin marketplace source; do
+    [ -n "$plugin" ] || continue
+    eval "source=\"$source\""
+    install_one_plugin "$plugin" "$marketplace" "$source" "$installed"
+  done <<< "$PLUGIN_SPECS"
+}
+
+# Add a marketplace if the CLI has never heard of it. Adding is idempotent in the
+# CLI, but it also *rewrites user settings*, so it is gated on the list rather
+# than run blind on every install.
+add_marketplace() {
+  local marketplace="$1" source="$2"
+  [ -n "$source" ] || return 0
+  if claude plugin marketplace list 2>/dev/null | grep -q "$marketplace"; then
+    return 0
+  fi
+  if [ "$MODE" = check ]; then bad "marketplace $marketplace not configured"; return 1; fi
+  if [ "$MODE" = dryrun ]; then would "claude plugin marketplace add $source"; return 1; fi
+  if claude plugin marketplace add "$source" >/dev/null 2>&1; then
+    ok "marketplace $marketplace added from $source"
+  else
+    bad "could not add marketplace $marketplace from $source"
+    return 1
+  fi
+}
+
+install_one_plugin() {
+  local plugin="$1" marketplace="$2" source="$3" installed="$4"
+  local id="$plugin@$marketplace"
+
+  add_marketplace "$marketplace" "$source" || return 0
+
+  if printf '%s' "$installed" | grep -q "$plugin"; then
+    # Skills themselves are already current: a directory-source marketplace is
+    # read from the clone, so `git pull` is the whole update for them (ADR 0006).
+    # This refresh keeps the *recorded* version -- the source commit sha, since
+    # plugin.json declares no version -- matching the clone, so that
+    # installed_plugins.json is not quietly lying about what the host is on.
+    # `plugin update` needs the full plugin@marketplace id; the bare name errors
+    # with "Plugin not found".
+    if mutating; then
+      claude plugin marketplace update "$marketplace" >/dev/null 2>&1 || true
+      claude plugin update "$id" >/dev/null 2>&1 || true
+      ok "$id installed and updated"
+    else
+      ok "$id installed"
+    fi
     return 0
   fi
 
-  if [ "$MODE" = check ]; then bad "$plugin not installed"; return 0; fi
-  if [ "$MODE" = dryrun ]; then would "claude plugin install $plugin"; return 0; fi
+  if [ "$MODE" = check ]; then bad "$id not installed"; return 0; fi
+  if [ "$MODE" = dryrun ]; then would "claude plugin install $id"; return 0; fi
 
   # Nothing below may abort the run. This step used to be a bare
   # `claude plugin install "$plugin" && ok ...`, which under `set -e` exits the
@@ -177,9 +231,13 @@ install_plugin() {
   # fetched the marketplace, leaving it with rtk initialised and no symlinks, no
   # settings merge and no shell exports. A half-configured host is worse than a
   # reported failure, because nothing announces it.
+  # No `-y`. The flag only matters for a marketplace-declared *command* install,
+  # which neither of these is -- and it does not exist at all on the oldest CLI in
+  # the fleet (2.1.81 on personal), where passing it fails the install outright
+  # with `error: unknown option '-y'`.
   local out
-  if out=$(claude plugin install "$plugin" 2>&1); then
-    ok "$plugin installed"
+  if out=$(claude plugin install "$id" 2>&1); then
+    ok "$id installed"
     return 0
   fi
   printf '%s\n' "$out" | sed 's/^/        /'
@@ -189,11 +247,11 @@ install_plugin() {
   # That was the real cause on all three hosts rolled out after thinkpad.
   warn "refreshing the marketplace cache and retrying once"
   claude plugin marketplace update "$marketplace" >/dev/null 2>&1 || true
-  if out=$(claude plugin install "$plugin" 2>&1); then
-    ok "$plugin installed (after a marketplace refresh)"
+  if out=$(claude plugin install "$id" 2>&1); then
+    ok "$id installed (after a marketplace refresh)"
   else
     printf '%s\n' "$out" | sed 's/^/        /'
-    bad "$plugin could not be installed; the rest of the tier is still applied"
+    bad "$id could not be installed; the rest of the tier is still applied"
   fi
 }
 
@@ -236,13 +294,9 @@ link_files() {
     fi
   done
 
-  # Skills are distributed by their own linker (see: Skill maintainability --
-  # buckets, versioning, fleet install). It ships in this repo once the skills
-  # tree lands; until then this is a no-op rather than a missing step.
-  if [ -x "$REPO/link-skills.sh" ]; then
-    if mutating; then "$REPO/link-skills.sh" && ok "skills linked"
-    else would "run link-skills.sh"; fi
-  fi
+  # No skills are linked here, and none ever will be. Skills ship as the
+  # `context-lab` plugin installed in step 3; ~/.claude/skills/ need not exist.
+  # The linker this step used to guard on was never written -- see ADR 0006.
 }
 
 # ---------------------------------------------------- 5. settings merge ------

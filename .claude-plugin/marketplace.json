@@ -1,0 +1,15 @@
+{
+  "name": "context-lab",
+  "owner": {
+    "name": "luutuankiet",
+    "url": "https://github.com/luutuankiet"
+  },
+  "plugins": [
+    {
+      "name": "context-lab",
+      "source": "./",
+      "description": "Skills for working with agents across a personal fleet: dbt/BigQuery optimisation, MCP development, long-running remote jobs, repo housekeeping, and release."
+    }
+  ],
+  "description": "luutuankiet's personal skill collection: the stable bucket of the context-lab repo, published as one plugin."
+}

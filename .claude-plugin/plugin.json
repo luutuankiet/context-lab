@@ -1,0 +1,21 @@
+{
+  "name": "context-lab",
+  "description": "Skills for working with agents across a personal fleet: dbt/BigQuery optimisation, MCP development, long-running remote jobs, repo housekeeping, and release.",
+  "author": {
+    "name": "luutuankiet",
+    "url": "https://github.com/luutuankiet"
+  },
+  "homepage": "https://github.com/luutuankiet/context-lab",
+  "repository": "https://github.com/luutuankiet/context-lab",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "context",
+    "dbt",
+    "bigquery",
+    "mcp"
+  ],
+  "skills": [
+    "./skills/stable"
+  ]
+}

@@ -3,8 +3,11 @@
 A non-blocking pattern scan over **newly-authored prose only**. Not over the source notes, not over vendored files, not over the repo at large.
 
 ```bash
-skills/stable/promote-working-notes/scripts/topology-check.sh <new-file>...
+<this skill's base directory>/scripts/topology-check.sh <new-file>...
 ```
+
+The harness states that base directory when it injects the skill. Do not build the
+path from `$CLAUDE_PLUGIN_ROOT` — that variable is empty in a Bash call.
 
 The script ships the generic classes, which are public constants. It never ships
 the identity half — that is derived below and handed to it as a **vocabulary

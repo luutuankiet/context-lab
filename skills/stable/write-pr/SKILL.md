@@ -103,12 +103,15 @@ Two usage modes: copy-paste (most agents) or `[% include 'snippets/X.j2' %]` (th
 ## Quick test (verify install)
 
 ```bash
-# Render the bundled minimal example
+# Render the bundled minimal example. SKILL_DIR is the base directory this
+# skill was loaded from -- the harness states it when it injects this file.
+# Do not use $CLAUDE_PLUGIN_ROOT: it is empty in a Bash call.
+SKILL_DIR=<this skill's base directory>
 cd <your-project>
 npx -y @luutuankiet/write-pr render \
-  --template .claude/skills/write-pr/examples/minimal/pr.md.j2 \
-  --evidence .claude/skills/write-pr/examples/minimal/evidence \
+  --template "$SKILL_DIR"/examples/minimal/pr.md.j2 \
+  --evidence "$SKILL_DIR"/examples/minimal/evidence \
   --out /tmp/test-pr.md
-diff /tmp/test-pr.md .claude/skills/write-pr/examples/minimal/pr.rendered.md
+diff /tmp/test-pr.md "$SKILL_DIR"/examples/minimal/pr.rendered.md
 # Expected: zero diff output
 ```
