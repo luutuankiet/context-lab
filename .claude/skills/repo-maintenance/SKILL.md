@@ -55,6 +55,7 @@ it with a new one rather than editing it.
 - [One entry point for repo context, reached by a scanner](../../../docs/adr/0007-one-entry-point-reached-by-a-scanner.md)
 - [The marketplace source is the GitHub repo](../../../docs/adr/0008-the-marketplace-source-is-the-github-repo.md)
 - [A tool's manual lives in the tool's repo, and the catalogue only points](../../../docs/adr/0009-a-tools-manual-lives-in-the-tools-repo.md)
+- [The catalogue has been swept for manuals once, and holds none](../../../docs/adr/0010-the-catalogue-has-been-swept-for-manuals-once.md)
 
 <!-- END GENERATED INDEX -->
 
