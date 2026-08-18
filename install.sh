@@ -205,11 +205,13 @@ install_one_plugin() {
   add_marketplace "$marketplace" "$source" || return 0
 
   if printf '%s' "$installed" | grep -q "$plugin"; then
-    # Already installed is not the same as current. A plugin is *copied* into
-    # ~/.claude/plugins/cache/, so an updated clone reaches the session only
-    # through `plugin update` -- and with no `version` key in plugin.json the
-    # version is the source commit sha, which is what makes that a no-op when
-    # nothing moved and a real update when it did.
+    # Skills themselves are already current: a directory-source marketplace is
+    # read from the clone, so `git pull` is the whole update for them (ADR 0006).
+    # This refresh keeps the *recorded* version -- the source commit sha, since
+    # plugin.json declares no version -- matching the clone, so that
+    # installed_plugins.json is not quietly lying about what the host is on.
+    # `plugin update` needs the full plugin@marketplace id; the bare name errors
+    # with "Plugin not found".
     if mutating; then
       claude plugin marketplace update "$marketplace" >/dev/null 2>&1 || true
       claude plugin update "$id" >/dev/null 2>&1 || true

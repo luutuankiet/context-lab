@@ -28,7 +28,7 @@ crashing.
 | symptom | page | area | verified |
 |---|---|---|---|
 | install.sh --check reports everything healthy but the host is not running what main says it should | [CHECK_PASSES_ON_A_STALE_CLONE](traps/CHECK_PASSES_ON_A_STALE_CLONE.md) | user-tier installer | 2026-08-17 |
-| a skill edit is saved in the clone, git status shows it, and every session still runs the old text | [EDITS_ONLY_REACH_A_SESSION_AFTER_A_COMMIT](traps/EDITS_ONLY_REACH_A_SESSION_AFTER_A_COMMIT.md) | skills collection | 2026-08-18 |
+| a path built from $CLAUDE_PLUGIN_ROOT inside a skill resolves to /skills/... and the command fails as if the file were missing | [CLAUDE_PLUGIN_ROOT_IS_EMPTY_IN_BASH](traps/CLAUDE_PLUGIN_ROOT_IS_EMPTY_IN_BASH.md) | skills collection | 2026-08-18 |
 | a shell script in this repo aborts with unbound variable on one machine only, and runs fine everywhere else | [EMPTY_ARRAY_IS_FATAL_UNDER_SET_U](traps/EMPTY_ARRAY_IS_FATAL_UNDER_SET_U.md) | shell scripts | 2026-08-17 |
 | a host works fine but edits I make in the clone never reach it any more | [LINK_REPLACED_BY_A_REAL_FILE](traps/LINK_REPLACED_BY_A_REAL_FILE.md) | user-tier installer | 2026-08-17 |
 | a hook that another tool installed stopped firing after I ran install.sh, and settings.json looks fine | [PRETOOLUSE_HOOK_GONE_AFTER_INSTALL](traps/PRETOOLUSE_HOOK_GONE_AFTER_INSTALL.md) | user-tier installer | 2026-08-17 |

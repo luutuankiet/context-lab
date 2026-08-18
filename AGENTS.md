@@ -31,9 +31,11 @@ Only `skills/stable/` installs, enforced by `"skills": ["./skills/stable"]` in
 `.claude-plugin/plugin.json` — not by a rule anyone has to remember. Moving a
 directory between buckets is a behaviour change, not filing.
 
-Skills ship as the `context-lab` **plugin**, so they are invoked namespaced
-(`context-lab:<name>`) and the cache holds a **copy**. An uncommitted edit in this
-clone reaches no session: commit first, then `./install.sh`.
+Skills ship as the `context-lab` **plugin**, invoked namespaced
+(`context-lab:<name>`). The marketplace source is this clone, so a session reads
+skills **from here, not from a copy** — an edit is live for the next session.
+Address a skill's own scripts from its base directory; `$CLAUDE_PLUGIN_ROOT` is
+empty in a Bash call.
 
 ## Check commands
 

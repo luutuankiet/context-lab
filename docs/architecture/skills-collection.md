@@ -55,16 +55,22 @@ claude plugin install context-lab@context-lab     # first-class source
 
 `install.sh` step 3 does both, idempotently, for this plugin and the upstream one.
 
-**`plugin.json` deliberately declares no `version`.** With no version key the
-plugin's version *is the source commit sha*, which is what makes `git pull` the
-whole update story — the alternative is a hand-bumped number that silently
-strands every host the day somebody forgets it. Its cost is
-`docs/traps/EDITS_ONLY_REACH_A_SESSION_AFTER_A_COMMIT.md`.
+**`plugin.json` deliberately declares no `version`**, so the recorded version is
+the source commit sha rather than a number somebody has to remember to bump.
 
-A plugin is **copied** into `~/.claude/plugins/cache/<marketplace>/<plugin>/<sha>/`
-— the whole repo, ~900 KB, not just `skills/`. Config files stay symlinked
-(ADR 0003); only skills changed carrier (ADR 0006). `~/.claude/skills/` is no
-longer used by this repo at all and need not exist on any host.
+**A directory-source marketplace is not copied.** Skills are read from the clone
+itself, so editing one changes what the next session runs — no commit, no
+reinstall. Measured, not assumed: an uncommitted edit was visible, and a brand-new
+directory in `skills/stable/` was invocable with nothing installed in between.
+`claude plugin install` does leave a ~900 KB copy under
+`~/.claude/plugins/cache/`, but that copy is bookkeeping, not the read path, and
+reading it to see what a host runs will mislead you
+(`docs/traps/CLAUDE_PLUGIN_ROOT_IS_EMPTY_IN_BASH.md`).
+
+Config files stay symlinked (ADR 0003); only skills changed carrier (ADR 0006).
+`~/.claude/skills/` is no longer used by this repo at all and need not exist on
+any host — foreign skills already sitting there are untouched, because plugins do
+not read that directory.
 
 ## Graduation is a gate that can fail
 

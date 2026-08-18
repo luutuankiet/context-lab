@@ -8,8 +8,8 @@ git clone https://github.com/luutuankiet/context-lab.git ~/dev/context-lab
 cd ~/dev/context-lab && ./install.sh
 ```
 
-Then keep it current with `git pull` — the skills plugin is versioned by the
-clone's commit sha, so a pull plus `./install.sh` is the whole update. There is no
+Then keep it current with `git pull`. Skills are served from the clone, so a pull
+is all they need; `install.sh` is what re-applies the config tier. There is no
 credential to put on a machine.
 
 ```sh
