@@ -3,85 +3,47 @@
 The lab where agent context is designed, and the package that ships it to every
 host in the fleet.
 
-Two things live here and they must never be confused:
+```sh
+git clone https://github.com/luutuankiet/context-lab.git ~/dev/context-lab
+cd ~/dev/context-lab && ./install.sh
+```
+
+Then keep it current with `git pull`. There is no package to install and no
+credential to put on a machine.
+
+## What is in here
 
 | tree | role | who reads it |
 |---|---|---|
+| `claude/` | the **payload** — user-tier config installed into `~/.claude/` | every host, via `install.sh` |
 | `skills/` | the **distributed** skills collection | every host, via `install.sh` |
-| `claude/` | the **distributed** user tier — the payload installed into `~/.claude/` | every host, via `install.sh` |
 | `install.sh` | the distributor | you, once per host |
-| `docs/` | the lab's own writing | humans |
-| `.claude/`, `AGENTS.md`, `CLAUDE.md` | **this repo's own** harness config | agents working *on* Context Lab |
+| `docs/` | the lab's own writing | humans, and agents on demand |
+| `AGENTS.md`, `CLAUDE.md`, `.claude/` | **this repo's own** harness config | agents working *on* Context Lab |
 
 ## The one structural requirement
 
-> Two trees must stay unambiguous: what Context Lab uses to **maintain itself**,
+> Two trees must stay unambiguous: what Context Lab uses to **maintain itself**
 > versus what it **distributes**. Otherwise the lab's own scaffolding leaks into
 > every repo it touches.
 
-The cut is the leading dot:
-
-- **`.claude/`** (dot) — configures agents *working on this repo*. Never shipped.
-- **`claude/`** (no dot) — the payload *shipped to* `~/.claude/` on every host.
-
-⚠️ These two names differ by one character. Before you edit either, read the
-path twice. `claude/README.md` restates this at the point of use.
+The cut is the leading dot — `.claude/` configures agents working on this repo and
+ships nowhere; `claude/` is the payload. ⚠️ One character. Read the path twice
+before editing either. Why it was cut there:
+[ADR 0001](docs/adr/0001-two-trees-cut-on-the-leading-dot.md).
 
 ## The naming rule
 
-*Context Lab* names the lab. **What it emits into any other repo carries no
-brand at all** — a canonical shape any agent reads as "this repo is laid out
-well," not a methodology to learn first.
+*Context Lab* names the lab. **What it emits into any other repo carries no brand at
+all** — a canonical shape any agent reads as "this repo is laid out well," not a
+methodology to learn first. If you find the string "Context Lab" inside a file
+destined for another repo, that file is wrong.
 
-The name is spoken in exactly one place: the brownfield converter you invoke by
-name. If you find the string "Context Lab" inside a file destined for another
-repo, that file is wrong.
+## Documentation
 
-## Skill buckets
+Start at **[AGENTS.md](AGENTS.md)** — it is what an agent loads, and it is short
+enough to read in a minute.
 
-The repo boundary cuts on **privacy**, not maturity. This repo is public, so
-maturity is the only axis here:
-
-| bucket | meaning |
-|---|---|
-| `skills/in-progress/` | live iteration; may change or disappear without warning |
-| `skills/stable/` | graduated; safe to depend on |
-| `skills/deprecated/` | the off-switch — excluded from install by path |
-
-Graduation is a **gate that can fail**: valid frontmatter + privacy scrub +
-owner's call. The catalog is *generated* from frontmatter — there is no
-hand-written docs page, because every hand-maintained second copy in the
-predecessor repo drifted.
-
-Skills that encode fleet topology do not live here. They live in the private
-companion repo.
-
-## Third-party skills
-
-**This repo contains zero third-party bytes**, and that is checkable:
-
-```bash
-./scripts/third-party-gate.sh
-```
-
-Skills written by other people are *pointed at*, never copied in. If you came
-looking for `wayfinder/` or `grilling/` and did not find them, that is why —
-they are upstream, they are excellent, and `install.sh` installs them rather
-than this repo forking them. The pointer, the recorded sha, the licence and
-what a subscription can and cannot do are all in
-[`docs/third-party-skills.md`](docs/third-party-skills.md).
-
-The boundary is one question: **did I write it?** Everything here is
-owner-authored. Everything that is not is a row in that table.
-
-## Status
-
-Phase 1 scaffolding. The trees exist; the contents arrive in later phases:
-
-| tree | filled by |
-|---|---|
-| `skills/*` | the skills migration, gated on the privacy scrub |
-| `claude/*` | the settings manifest + `install.sh` work |
-| `install.sh` | same |
-
-Until then the stubs refuse to run rather than half-work.
+Everything else is indexed in **[docs/README.md](docs/README.md)**: how the
+installer works, the traps that have already cost somebody an afternoon, the
+reference detail, and the decisions behind the shape.
