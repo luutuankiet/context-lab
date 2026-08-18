@@ -106,9 +106,9 @@ Two usage modes: copy-paste (most agents) or `[% include 'snippets/X.j2' %]` (th
 # Render the bundled minimal example
 cd <your-project>
 npx -y @luutuankiet/write-pr render \
-  --template .claude/skills/write-pr/examples/minimal/pr.md.j2 \
-  --evidence .claude/skills/write-pr/examples/minimal/evidence \
+  --template "$CLAUDE_PLUGIN_ROOT"/skills/stable/write-pr/examples/minimal/pr.md.j2 \
+  --evidence "$CLAUDE_PLUGIN_ROOT"/skills/stable/write-pr/examples/minimal/evidence \
   --out /tmp/test-pr.md
-diff /tmp/test-pr.md .claude/skills/write-pr/examples/minimal/pr.rendered.md
+diff /tmp/test-pr.md "$CLAUDE_PLUGIN_ROOT"/skills/stable/write-pr/examples/minimal/pr.rendered.md
 # Expected: zero diff output
 ```

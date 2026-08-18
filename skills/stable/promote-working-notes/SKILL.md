@@ -89,7 +89,7 @@ Two consequences:
 ### 7. Run the topology check over the new prose only
 
 ```bash
-skills/stable/promote-working-notes/scripts/topology-check.sh <new-file>...
+"$CLAUDE_PLUGIN_ROOT"/skills/stable/promote-working-notes/scripts/topology-check.sh <new-file>...
 ```
 
 A pattern scan of ~10 classes: host nicknames, DNS suffix, internal IP ranges, client identifiers. The generic classes are public constants and ship in the script; the identity half is **derived on the host** and supplied as a vocabulary file, never committed. See [references/topology-check.md](references/topology-check.md) for the derivation, the vocabulary interface and what to substitute.

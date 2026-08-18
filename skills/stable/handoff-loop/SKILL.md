@@ -173,7 +173,7 @@ Do NOT spawn a verifier on every edit. Use this decision tree:
 ## Phase 4: Verifier Subagent
 
 ### Spawn Mechanics
-**Defer to `subagent-strategy` skill** for model selection, agent type, and general spawn rules.
+**Defer to `subagent-strategy`** for model selection, agent type, and general spawn rules, *where it is installed* — it is not published in this collection. Where it is absent, this skill states no policy on model choice: pick the cheapest agent type that can hold the work.
 This section only adds: the verifier-specific prompt template and structured briefing format.
 
 ### MCP Injection (NON-NEGOTIABLE)
@@ -315,5 +315,5 @@ When the loop completes (or is stopped), present to user:
 
 | Skill | Relationship |
 |-------|-------------|
-| **subagent-strategy** | Handoff-loop DEFERS to it for spawn mechanics. Does NOT redefine model selection or agent types. |
-| **task-reconstruction** | If session forks during a handoff loop, task-reconstruction helps the new session pick up where the loop left off |
+| **subagent-strategy** (unpublished) | Handoff-loop DEFERS to it for spawn mechanics where it is installed. Does NOT redefine model selection or agent types. |
+| **task-reconstruction** (deprecated, not shipped) | If a session forks during a handoff loop, it helped the new session pick up where the loop left off |

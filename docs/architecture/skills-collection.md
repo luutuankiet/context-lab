@@ -1,7 +1,7 @@
 ---
 title: The skills collection
-covers: where the distributed skills live, which bucket actually installs, and why no third-party skill is vendored here
-verified: 2026-08-17
+covers: where the distributed skills live, how the stable bucket ships as a plugin, and why no third-party skill is vendored here
+verified: 2026-08-18
 ---
 
 # The skills collection
@@ -16,9 +16,9 @@ decided and maturity is the only axis left inside it.
 
 | bucket | count today | meaning |
 |---|---|---|
-| `skills/stable/` | 10 | graduated; safe to depend on; **the only bucket that installs** |
-| `skills/in-progress/` | 2 | live iteration; may change or disappear without warning |
-| `skills/deprecated/` | 13 | the off-switch — excluded by path, no config edit needed |
+| `skills/stable/` | 11 | graduated; safe to depend on; **the only bucket that installs** |
+| `skills/in-progress/` | 1 | live iteration; may change or disappear without warning |
+| `skills/deprecated/` | 11 | the off-switch — excluded by the allowlist, no config edit needed |
 
 Bucket placement therefore decides whether a skill installs at all. Moving a
 directory between buckets is a behaviour change, not filing.
@@ -27,21 +27,53 @@ Skills that encode fleet topology — host names, endpoints, account-to-project
 mappings — do not live here. They live in the private companion repo, and the test
 for which is not "is it sensitive" but **"is it only relevant to me"**.
 
-## Nothing installs today
+## The bucket rule is one line of JSON
 
-`install.sh` step 4 runs `link-skills.sh` if it is executable. **That file does not
-exist in this repo.** The step is a deliberate no-op, not an oversight, and the
-consequence is worth stating plainly: a host that runs `install.sh` today gets the
-user-tier config and **zero skills**.
+`.claude-plugin/plugin.json` declares `"skills": ["./skills/stable"]`. A listed
+path is itself a skill directory when it holds a `SKILL.md`, and otherwise its
+**immediate children** are scanned — one level, never recursive. So the allowlist
+*is* the bucket mechanism:
 
-Distribution, once the linker lands, is clone-plus-link and `git pull` — no
-package, no credential on a daily driver, no push from a central host. A public
-repo needs no credential, so nothing new lands on any machine.
+- adding a directory to `skills/stable/` publishes it, with no manifest edit;
+- `mv`-ing it to `deprecated/` unpublishes it, also with no manifest edit;
+- `in-progress/` and `deprecated/` are unreachable to a consumer by construction,
+  not by a rule somebody has to remember.
+
+Verified by installing it: `claude plugin details context-lab` lists exactly the
+11 stable skills and nothing else, at ~1.2k always-on tokens for the whole bucket.
+
+## Distribution: a marketplace whose source is the clone
+
+Each host already clones this repo to run `install.sh`. That same clone is the
+marketplace source, so nothing new is fetched and the update verb stays `git
+pull`:
+
+```sh
+claude plugin marketplace add ~/dev/context-lab   # a filesystem path is a
+claude plugin install context-lab@context-lab     # first-class source
+```
+
+`install.sh` step 3 does both, idempotently, for this plugin and the upstream one.
+
+**`plugin.json` deliberately declares no `version`.** With no version key the
+plugin's version *is the source commit sha*, which is what makes `git pull` the
+whole update story — the alternative is a hand-bumped number that silently
+strands every host the day somebody forgets it. Its cost is
+`docs/traps/EDITS_ONLY_REACH_A_SESSION_AFTER_A_COMMIT.md`.
+
+A plugin is **copied** into `~/.claude/plugins/cache/<marketplace>/<plugin>/<sha>/`
+— the whole repo, ~900 KB, not just `skills/`. Config files stay symlinked
+(ADR 0003); only skills changed carrier (ADR 0006). `~/.claude/skills/` is no
+longer used by this repo at all and need not exist on any host.
 
 ## Graduation is a gate that can fail
 
 Three conditions, all of them: valid frontmatter, a privacy scrub, and the owner's
 call. Two mechanical checks back it:
+
+```sh
+scripts/skills-publish-gate.sh   # runs both, plus `claude plugin validate --strict`
+```
 
 ```sh
 find skills -type l          # must return empty — see below
@@ -77,8 +109,9 @@ trailing newline. The observed failure was not copy-then-diverge; it was
 copy-then-*not*-diverge, which is worse, because nothing ever signals that the copy
 is redundant.
 
-Hydration is `install.sh` step 3 today: it runs `claude plugin install` for the one
-upstream collection in use. A manifest-driven form is not built yet.
+Hydration is `install.sh` step 3: it runs `claude plugin install` for the one
+upstream collection in use, from the same list that installs this repo's own
+plugin. The two are the same mechanism pointed at different sources.
 
 **A subscription cannot be half-taken.** There is no per-skill off-switch for a
 plugin: the settings key that looks like one short-circuits to "on" for plugin

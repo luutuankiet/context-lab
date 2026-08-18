@@ -13,7 +13,7 @@ user-invocable: true
 - Hot-connecting to a new or experimental MCP server
 - **PROACTIVE:** Agent is editing MCP server source code (see Hot Dev Loop below)
 
-> **Wiring new servers to mcpproxy or managing the proxy fleet?** Use the **manage-mcp-proxy** skill instead.
+> **Wiring new servers to mcpproxy or managing the proxy fleet?** That is `manage-mcp-proxy`, a fleet-topology skill this collection does not publish. If it is not installed on this host, do the proxy work by hand rather than looking for it.
 
 ## Shim Behavior (`@luutuankiet/mcp-proxy-shim` v1.3.3+)
 
@@ -52,7 +52,7 @@ kill %1 && PORT=9998 npx tsx src/index.ts &
 
 # Deploy (once, when done)
 docker compose build && docker compose up -d
-# Then: manage-mcp-proxy skill to restart upstream
+# Then restart the upstream through the proxy admin tool (manage-mcp-proxy, unpublished, wraps this)
 ```
 
 ### Python
@@ -126,7 +126,7 @@ curl -s localhost:3456/retrieve_tools -d '{"query":"my new tool"}'
 
 ## Debug Scenarios
 
-> **Proxy ops** (restart upstreams, quarantine, add servers): **manage-mcp-proxy** skill.
+> **Proxy ops** (restart upstreams, quarantine, add servers): `manage-mcp-proxy`, which is not part of this collection.
 
 | Symptom | Fix |
 |---------|-----|

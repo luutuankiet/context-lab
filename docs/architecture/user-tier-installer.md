@@ -64,15 +64,22 @@ stdin and would hang a non-interactive install forever.
 Do **not** track `~/.claude/hooks/rtk-rewrite.sh` or `.rtk-hook.sha256` here. rtk's
 own migration path deletes both by design.
 
-**3. Marketplace plugin** — `mattpocock-skills@claude-plugins-official`. The
-`enabledPlugins` key in `settings.json` only flips a switch; on a host that has
-never fetched the marketplace there is nothing to switch on, so the plugin has to
-be installed explicitly. This step can fail and **must never abort the run** — see
-the comment block at the step itself, which records why.
+**3. Marketplace plugins** — two of them, from one list of
+`plugin|marketplace|source` specs: `mattpocock-skills@claude-plugins-official`
+(third-party hydration) and `context-lab@context-lab`, whose marketplace source is
+`$REPO` — this clone. The `enabledPlugins` key in `settings.json` only flips a
+switch; on a host that has never fetched the marketplace there is nothing to
+switch on, so each plugin has to be installed explicitly. This step can fail and
+**must never abort the run** — see the comment block at the step itself, which
+records why.
 
-**4. Symlink farm.** The three links above, plus `link-skills.sh` when it exists.
-It does not exist yet, so the skills step is a documented no-op rather than a
-missing one.
+The loop reads its specs from a **here-string, never a pipe**: a piped `while
+read` runs in a subshell, and every `bad()` inside it would increment a `FAILURES`
+that dies with that subshell — leaving `--check` exiting 0 on a host with no
+plugins at all.
+
+**4. Symlink farm.** The three links above, and nothing else. Skills are not
+linked and never will be: they arrive as the plugin from step 3.
 
 **5. Settings merge — key-level, never file replacement.**
 

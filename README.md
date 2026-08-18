@@ -8,16 +8,23 @@ git clone https://github.com/luutuankiet/context-lab.git ~/dev/context-lab
 cd ~/dev/context-lab && ./install.sh
 ```
 
-Then keep it current with `git pull`. There is no package to install and no
+Then keep it current with `git pull` — the skills plugin is versioned by the
+clone's commit sha, so a pull plus `./install.sh` is the whole update. There is no
 credential to put on a machine.
+
+```sh
+cd ~/dev/context-lab && git pull && ./install.sh   # config tier + skills plugin
+./install.sh --check                               # verify, mutate nothing
+```
 
 ## What is in here
 
 | tree | role | who reads it |
 |---|---|---|
 | `claude/` | the **payload** — user-tier config installed into `~/.claude/` | every host, via `install.sh` |
-| `skills/` | the **distributed** skills collection | every host, via `install.sh` |
-| `install.sh` | the distributor | you, once per host |
+| `skills/` | the **distributed** skills collection — `stable/` ships as the `context-lab` plugin | every host, via `install.sh` |
+| `install.sh` | the distributor — links config, installs plugins | you, once per host |
+| `.claude-plugin/` | the marketplace and plugin manifests | Claude Code, on install |
 | `docs/` | the lab's own writing | humans, and agents on demand |
 | `AGENTS.md`, `CLAUDE.md`, `.claude/` | **this repo's own** harness config | agents working *on* Context Lab |
 

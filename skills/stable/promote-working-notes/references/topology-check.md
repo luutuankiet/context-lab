@@ -3,7 +3,7 @@
 A non-blocking pattern scan over **newly-authored prose only**. Not over the source notes, not over vendored files, not over the repo at large.
 
 ```bash
-skills/stable/promote-working-notes/scripts/topology-check.sh <new-file>...
+"$CLAUDE_PLUGIN_ROOT"/skills/stable/promote-working-notes/scripts/topology-check.sh <new-file>...
 ```
 
 The script ships the generic classes, which are public constants. It never ships

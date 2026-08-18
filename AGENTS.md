@@ -22,17 +22,24 @@ host this operator works on. Bash and markdown; no build, no runtime.
 ```
 AGENTS.md      always in context — keep it under 4 KB     CLAUDE.md  = @AGENTS.md
 claude/        the payload installed onto every host      install.sh the distributor
+.claude-plugin/ marketplace.json + plugin.json — how skills/stable/ reaches a host
 skills/        stable | in-progress | deprecated          scripts/   repo tooling
 docs/          prose, indexed in docs/README.md           .claude/   never shipped
 ```
 
-Only `skills/stable/` installs. Moving a directory between buckets is a behaviour
-change, not filing.
+Only `skills/stable/` installs, enforced by `"skills": ["./skills/stable"]` in
+`.claude-plugin/plugin.json` — not by a rule anyone has to remember. Moving a
+directory between buckets is a behaviour change, not filing.
+
+Skills ship as the `context-lab` **plugin**, so they are invoked namespaced
+(`context-lab:<name>`) and the cache holds a **copy**. An uncommitted edit in this
+clone reaches no session: commit first, then `./install.sh`.
 
 ## Check commands
 
 ```sh
 ./install.sh --check              # this host's user tier; mutates nothing
+scripts/skills-publish-gate.sh    # symlink ban + name/dir match + manifest validate
 ./install.sh --dry-run            # print every mutation without performing it
 ./test-install.sh                 # assertions against a throwaway $HOME
 scripts/gen-docs-index.sh --check # fail if docs/README.md is stale
