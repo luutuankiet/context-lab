@@ -8,7 +8,7 @@ verified: 2026-08-18
 
 > **Retired by construction — this can no longer happen.** `~/.claude/CLAUDE.md`
 > stopped being a symlink into the clone
-> ([ADR 0009](../adr/0009-user-memory-composes-by-import-not-symlink.md)), so rtk
+> ([ADR 0011](../adr/0011-user-memory-composes-by-import-not-symlink.md)), so rtk
 > writes to a host-local file that no repository tracks. The mechanism below is
 > kept because the *shape* of the failure recurs: a tool that detects its own
 > reference by literal string, writing into a file something else also owns.

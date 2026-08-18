@@ -53,7 +53,7 @@ done
 
 `CLAUDE.md` is deliberately absent from that list: it is a real host-local file
 composed by `@`-import, not a link, so `NOT A LINK` is the correct state for it
-(ADR 0009). Every line above must resolve into the clone. `[ -e ]` is not enough — that is the test
+(ADR 0011). Every line above must resolve into the clone. `[ -e ]` is not enough — that is the test
 that passes for both shapes and is why the problem hides.
 
 ## The general rule

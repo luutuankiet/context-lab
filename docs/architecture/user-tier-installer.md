@@ -36,7 +36,7 @@ instead: `~/.claude/CLAUDE.md` is a real host-local file that no repository owns
 and step 4b adds exactly one line to it pointing at the marketplace clone
 (`~/.claude/plugins/marketplaces/context-lab/claude/CLAUDE.md`). A second tier adds
 its own line without contending for the file. See
-[ADR 0009](../adr/0009-user-memory-composes-by-import-not-symlink.md).
+[ADR 0011](../adr/0011-user-memory-composes-by-import-not-symlink.md).
 
 An edit made on a host writes straight through the link into the tracked file, so
 drift is visible as ordinary `git status` output in the clone:
