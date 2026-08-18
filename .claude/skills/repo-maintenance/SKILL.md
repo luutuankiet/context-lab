@@ -41,6 +41,7 @@ Simply true, and expensive to re-derive.
 | page | summary | verified |
 |---|---|---|
 | [The owned settings keys](../../../docs/reference/owned-settings-keys.md) | which nineteen keys install.sh takes over, which are deliberately left to the host, and which are actively deleted | 2026-08-18 |
+| [The life of a skill](../../../docs/reference/skill-lifecycle.md) | the three buckets and which one is served, where drafting happens, and what changes for a consumer when a skill is promoted out to the tool's own repo | 2026-08-18 |
 
 ## Decisions
 
