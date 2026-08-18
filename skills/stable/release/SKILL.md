@@ -48,7 +48,7 @@ Update `releases/README.md` index table with the new entry.
 
 ### Step 3: Commit and push
 
-**Gate:** run the 🚨 pre-flight leak & secret scan (section below) on the notes + staged diff first — scrub secrets, resolve private gsd-lite notation to plain English, genericize sensitive info.
+**Gate:** run the 🚨 pre-flight leak & secret scan (section below) on the notes + staged diff first — scrub secrets, resolve retired private-notes notation to plain English, genericize sensitive info.
 
 ```bash
 git add releases/vX.Y.Z.md releases/README.md [package.json|pyproject.toml]
@@ -120,7 +120,7 @@ gh pr create --base main --head <branch> --title "..." --body "..."
 `releases/` is **world-readable and permanent.** Scan the release diff AND your draft notes before committing, and again before tagging. Three classes to catch — applies to BOTH narrative and auto-parsed patterns (commit-message notes leak just as easily):
 
 - **Secrets / credentials** — tokens, API keys, passwords, connection strings, `.env` values, basic-auth in URLs, private keys. **Scrub entirely** — never publish, even redacted-looking. If a secret already reached a commit, rotate it.
-- **Private gsd-lite notation** — `LOG-NNN`, `TASK-NNN`, `WORK.md §N`, gsd-lite paths. The reader can't follow these (`gsd-lite/` is gitignored). **Resolve to plain English** + the underlying fact.
+- **Retired private-notes notation** — `LOG-NNN`, `TASK-NNN`, `WORK.md §N`, `gsd-lite/` paths. These point into a private notes tier that no longer exists, so the reference resolves to nothing for any reader — and unconverted repos and old drafts still carry it. **Resolve to plain English** + the underlying fact.
 - **Sensitive / internal info** — client names under NDA, internal hostnames/IPs, employee data, anything that shouldn't leave the org. **Genericize or omit.**
 
 Fast net, then eyeball:
@@ -129,7 +129,7 @@ Fast net, then eyeball:
 rg -nI 'LOG-[0-9]|TASK-[0-9]|WORK\.md|gsd-lite/|password|secret|token|api[_-]?key|-----BEGIN' releases/vX.Y.Z.md $(git diff --cached --name-only)
 ```
 
-The regex is a net, not a guarantee — read the draft once more for a leaked client name or hostname it won't catch. **When in doubt, leave it out.**
+The regex is a net, not a guarantee — read the draft once more for a leaked client name or hostname it won't catch. **When in doubt, leave it out.** Keep the retired-notation patterns in the net even though that tier is gone: the drafts that leak it are the old ones, which is exactly when nobody remembers the convention.
 
 ---
 
@@ -496,7 +496,7 @@ The audience is **a future agent probing how the project grew**, not a human rea
 **Limits:**
 - **No diagrams** — no Mermaid, no ASCII, no screenshots. Ever.
 - **No multi-section anatomy** — no TL;DR / Why / Highlights / Before-After / Config / Upgrade scaffolding.
-- **~8 bullets max.** More than that means the release is too big or you're over-explaining — push detail to the commit body or `gsd-lite/`.
+- **~8 bullets max.** More than that means the release is too big or you're over-explaining — push detail to the commit body or the repo's `docs/`.
 
 **This format OVERRIDES the repo's existing release voice.** If a repo's `releases/` history is hundreds of lines of pitch prose and diagrams, do NOT match it — that legacy is exactly what you're correcting. Reuse past releases only for mechanical conventions (file naming, the index table); never for length or tone.
 
@@ -544,7 +544,7 @@ repo/
 1. **Title** — `# vX.Y.Z — <one-line theme>`
 2. **Body** — short bullets, one per change (`**what** — why`). A flat list, or grouped under `##` mini-headers if there are 2+ areas.
 
-Nothing else — no diagrams, no scaffolding, no before/after walkthroughs. If a fact isn't load-bearing for "what did this version do and why," cut it; long reasoning lives in the commit body or `gsd-lite/`. Voice: factual, not pitch — summarize the arc, don't transcribe the commit log.
+Nothing else — no diagrams, no scaffolding, no before/after walkthroughs. If a fact isn't load-bearing for "what did this version do and why," cut it; long reasoning lives in the commit body or the repo's `docs/`. Voice: factual, not pitch — summarize the arc, don't transcribe the commit log.
 
 ### Workflow Template: `.github/workflows/publish.yml` (release job only)
 
@@ -592,8 +592,8 @@ Append-only narrative release notes for `<package-name>`.
 - **Audience:** a future agent reconstructing how the project grew — not a human reading a pitch.
 - **Format:** title line + short bullets (one per change, `**what** — why`). Scannable in ~10s. No prose paragraphs, no diagrams, ~8 bullets max.
 - **This format wins over legacy notes** — if older entries run long or pitchy, don't match them; reuse past files only for naming + index conventions.
-- **Voice:** plain and factual. Long reasoning goes in the commit body or `gsd-lite/`.
-- **Pre-flight scan (REQUIRED)** — before committing, scrub secrets/creds and resolve private gsd-lite notation (`LOG-NNN`, `WORK.md §N`) to plain English; `releases/` is world-readable and permanent.
+- **Voice:** plain and factual. Long reasoning goes in the commit body; durably-true prose goes in the repo's `docs/`, a decision in `docs/adr/`, anything with a next action on the issue tracker. Never a private notes directory — a release note may only point at something committed.
+- **Pre-flight scan (REQUIRED)** — before committing, scrub secrets/creds and resolve retired private-notes notation (`LOG-NNN`, `WORK.md §N`) to plain English; `releases/` is world-readable and permanent.
 
 ## Publishing
 The `publish.yml` workflow reads `releases/${{ github.ref_name }}.md` via
@@ -607,7 +607,7 @@ The `publish.yml` workflow reads `releases/${{ github.ref_name }}.md` via
 
 ### No diagrams in release bodies
 
-Release notes carry no Mermaid, no ASCII art, no screenshots. The reader is a future agent reconstructing project growth — it doesn't need a diagram, and nobody reads one in a release body. If a flow genuinely needs a picture, it belongs in the code/docs or `gsd-lite/`, referenced in plain text, never pasted into the release note.
+Release notes carry no Mermaid, no ASCII art, no screenshots. The reader is a future agent reconstructing project growth — it doesn't need a diagram, and nobody reads one in a release body. If a flow genuinely needs a picture, it belongs in the code or the repo's `docs/`, referenced in plain text, never pasted into the release note.
 
 ### Canonical Example
 
@@ -617,7 +617,7 @@ The model entry under the Format Mandate above is the canonical shape: a title l
 
 The per-file pattern plays naturally with agentic workflows:
 
-- **Drafting:** tell the agent "draft `releases/vX.Y.Z.md` — we shipped X that solves Y"; the agent pulls context from `gsd-lite/` but keeps the body brief, bulleted, and scrubbed of private notation/secrets.
+- **Drafting:** tell the agent "draft `releases/vX.Y.Z.md` — we shipped X that solves Y"; the agent pulls context from what the release is already made of — the ticket that spawned it, the commit bodies, the repo's `docs/` — but keeps the body brief, bulleted, and scrubbed of retired notation/secrets.
 - **Consistency:** the agent follows THIS skill's format, not the repo's legacy voice — grep past `releases/*.md` only for naming + index conventions, never to imitate length or tone.
 - **Review:** the PR diff on `releases/vX.Y.Z.md` is the exact release body — no surprises at tag-push time.
 
