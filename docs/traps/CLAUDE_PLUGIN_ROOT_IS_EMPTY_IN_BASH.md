@@ -32,16 +32,22 @@ Never a path relative to the *repo* root either (`skills/stable/<skill>/…`). T
 only resolves when the working directory happens to be a clone of this repo,
 which is never true on a consumer's machine.
 
-## Related: the cache copy is not what a session reads
+## Related: which copy a session reads depends on the marketplace source
 
 Installing this repo's plugin creates
-`~/.claude/plugins/cache/context-lab/context-lab/<sha>/` — a full copy of the
-clone. For a **filesystem-source** marketplace, that copy is *not* where skills
-are loaded from: `known_marketplaces.json` records `installLocation` as the clone
-itself, and a session's skill base directory is the clone path.
+`~/.claude/plugins/cache/context-lab/context-lab/<sha>/`. Whether that copy is the
+read path depends entirely on how the marketplace is sourced, and the two answers
+are opposites:
 
-Two consequences:
+- **`"source": "directory"`** — `known_marketplaces.json` records `installLocation`
+  as the clone itself, and a session's skill base directory is the clone path. The
+  cache copy is bookkeeping; reading it will mislead you, and editing it does
+  nothing.
+- **`"source": "github"`** — the marketplace is fetched into
+  `~/.claude/plugins/marketplaces/<name>/` and the cache copy is authoritative.
+  Reading the clone will mislead you instead.
 
-- **Reading the cache to find out what a host is running will mislead you.** Read
-  the clone.
-- **Editing the cache changes nothing** and is invisible to `git status`.
+`context-lab` moved from the first shape to the second in ADR 0008;
+`context-lab-private` was always the second. Check `known_marketplaces.json` before
+assuming either. Editing the cache is still pointless under both — the next update
+overwrites it, and `git status` never sees it.

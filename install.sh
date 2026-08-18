@@ -145,15 +145,16 @@ install_rtk() {
 # the host (docs/third-party-skills.md records which upstream, at which sha,
 # under which licence -- scripts/third-party-gate.sh asserts that id and that
 # file agree). The second is this repo: skills/stable/ ships as the `context-lab`
-# plugin out of a marketplace whose source is *this clone*, so the fleet update
-# verb stays `git pull` and drift stays visible in `git status` (ADR 0006).
+# plugin out of a marketplace whose source is the *GitHub repo* -- so a host needs
+# no clone, the marketplace serves the default branch, and `claude plugin update`
+# is the real update verb (ADR 0008, superseding the directory source of 0006).
 #
 # Each spec is `plugin|marketplace|source`. An empty source means the marketplace
 # is already known to the CLI and must not be added. Written as a newline list
 # and read with `while read`, not an array: bash 3.2 on m3 makes "${arr[@]}" on
 # an empty array fatal under `set -u`, and a plain string has no such edge.
 PLUGIN_SPECS="mattpocock-skills|claude-plugins-official|
-context-lab|context-lab|\$REPO"
+context-lab|context-lab|luutuankiet/context-lab"
 
 install_plugin() {
   step "3. marketplace plugins"
@@ -185,7 +186,15 @@ install_plugin() {
 add_marketplace() {
   local marketplace="$1" source="$2"
   [ -n "$source" ] || return 0
-  if claude plugin marketplace list 2>/dev/null | grep -q "$marketplace"; then
+  # Exact match on the name, never a substring: `context-lab` is a prefix of
+  # `context-lab-private`, and an unanchored `grep -q "$marketplace"` matched the
+  # private marketplace, returned early, and left context-lab unadded on every
+  # host while the installer reported success. `awk '{print $NF}'` reduces each
+  # line of the pretty listing to its last field -- the bare name on a name line,
+  # something that cannot collide on any other -- so the guard depends on neither
+  # the ❯ glyph nor --json, which the oldest CLI in the fleet predates.
+  if claude plugin marketplace list 2>/dev/null | awk '{print $NF}' \
+       | grep -qx "$marketplace"; then
     return 0
   fi
   if [ "$MODE" = check ]; then bad "marketplace $marketplace not configured"; return 1; fi
@@ -204,12 +213,14 @@ install_one_plugin() {
 
   add_marketplace "$marketplace" "$source" || return 0
 
-  if printf '%s' "$installed" | grep -q "$plugin"; then
-    # Skills themselves are already current: a directory-source marketplace is
-    # read from the clone, so `git pull` is the whole update for them (ADR 0006).
-    # This refresh keeps the *recorded* version -- the source commit sha, since
-    # plugin.json declares no version -- matching the clone, so that
-    # installed_plugins.json is not quietly lying about what the host is on.
+  # Exact match on the full plugin@marketplace id -- see add_marketplace for why
+  # a substring match here is a silent no-op rather than a visible failure.
+  if printf '%s\n' "$installed" | awk '{print $NF}' | grep -qx "$id"; then
+    # A remote-source marketplace is a fetched copy, so this refresh *is* the
+    # update -- `marketplace update` re-fetches the repo, `plugin update` re-reads
+    # it. plugin.json still declares no version, so the recorded version is the
+    # source commit sha and a push is always seen; a static version key would let
+    # `plugin update` no-op while reporting success (ADR 0006, still true).
     # `plugin update` needs the full plugin@marketplace id; the bare name errors
     # with "Plugin not found".
     if mutating; then

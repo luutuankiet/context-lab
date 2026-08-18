@@ -32,9 +32,9 @@ Only `skills/stable/` installs, enforced by `"skills": ["./skills/stable"]` in
 directory between buckets is a behaviour change, not filing.
 
 Skills ship as the `context-lab` **plugin**, invoked namespaced
-(`context-lab:<name>`). The marketplace source is this clone, so a session reads
-skills **from here, not from a copy** — an edit is live for the next session.
-Address a skill's own scripts from its base directory.
+(`context-lab:<name>`). The marketplace source is the **GitHub repo**, so a host
+reads a fetched copy of `main`, not this clone — an edit is live after push plus
+`claude plugin update` (ADR 0008). Address a skill's scripts from its base dir.
 
 ## Check commands
 

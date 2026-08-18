@@ -42,7 +42,8 @@
   "effortLevel": "high",
   "outputStyle": "default",
   "enabledPlugins": {
-    "mattpocock-skills@claude-plugins-official": true
+    "mattpocock-skills@claude-plugins-official": true,
+    "context-lab@context-lab": true
   },
   "cleanupPeriodDays": 365,
   "autoCompactEnabled": false,
@@ -53,5 +54,14 @@
   "skipAutoPermissionPrompt": true,
   "autoScrollEnabled": true,
   "agentPushNotifEnabled": true,
-  "tui": "fullscreen"
+  "tui": "fullscreen",
+  "extraKnownMarketplaces": {
+    "context-lab": {
+      "source": {
+        "source": "github",
+        "repo": "luutuankiet/context-lab"
+      },
+      "autoUpdate": true
+    }
+  }
 }

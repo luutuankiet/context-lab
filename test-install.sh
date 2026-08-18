@@ -101,7 +101,7 @@ assert "malformed file left untouched" "{ this is not json" "$(cat "$CLAUDE_CONF
 banner "10. a genuinely fresh host (no settings.json at all)"
 fresh; rm -f "$CLAUDE_CONFIG_DIR/settings.json"
 run >/dev/null 2>&1; assert "install exits 0 with no prior settings" "0" "$?"
-assert "manifest keys all present" "16" "$(jq -r 'keys | length' "$REPO/claude/settings.owned.json")"
+assert "manifest keys all present" "17" "$(jq -r 'keys | length' "$REPO/claude/settings.owned.json")"
 run --check >/dev/null 2>&1; assert "--check passes on the fresh host" "0" "$?"
 
 banner "11. the shipped scripts actually run"
