@@ -50,8 +50,10 @@ done
 # Never a directory symlink: $CLAUDE_DIR also holds .credentials.json,
 # history.jsonl, projects/, sessions/ and 20-odd other runtime entries owned by
 # Claude Code itself. Linking the directory would put all of that in git.
+# claude/CLAUDE.md is deliberately absent: user memory is composed by @-import
+# in step 4b, not linked. Linking it made two installers compete for ownership
+# of one file, and let rtk write through the link into a tracked repo (ADR 0011).
 LINKS=(
-  "claude/CLAUDE.md|CLAUDE.md"
   "claude/statusline.sh|statusline.sh"
   "claude/hooks/token-tracker.sh|hooks/token-tracker.sh"
 )
@@ -322,6 +324,120 @@ link_files() {
   # The linker this step used to guard on was never written -- see ADR 0006.
 }
 
+# ------------------------------------------------- 4b. user memory -----------
+
+# The distinctive tail of the import line this installer owns. Any @-line ending
+# in it is ours regardless of how the path was spelled, which is what makes the
+# collapse below idempotent: rtk appended a second import precisely because it
+# matched one literal spelling and missed the other (see
+# docs/traps/RTK_IMPORT_APPENDED_TWICE.md).
+MEMORY_IMPORT_TAIL='/plugins/marketplaces/context-lab/claude/CLAUDE.md'
+
+# $CLAUDE_DIR/CLAUDE.md is a real, host-local file this installer does not own.
+# It owns one line in it. Everything else -- rtk's @RTK.md, the private overlay's
+# own import, and whatever the operator hand-writes -- is left exactly as found.
+# The imported target is the *marketplace* clone, not the plugin cache: the cache
+# is keyed by commit sha and gets a new directory on every push, while
+# plugins/marketplaces/<name>/ is keyed by name and never moves.
+memory_import() {
+  step "4b. user memory -> $CLAUDE_DIR/CLAUDE.md"
+
+  local dst="$CLAUDE_DIR/CLAUDE.md"
+  # TAIL is already the whole path below $CLAUDE_DIR -- do not prepend any of it
+  # again. Getting this wrong is invisible: the doubled path is self-consistent,
+  # so the idempotence tests still pass and only the target-existence check below
+  # notices that nothing is there.
+  local src="$CLAUDE_DIR$MEMORY_IMPORT_TAIL"
+  local line
+
+  # Prefer the ~-anchored spelling: it is what a colleague's host gets, so the
+  # file reads the same everywhere. Fall back to absolute when $CLAUDE_DIR has
+  # been pointed somewhere else, which is how test-install.sh exercises this.
+  case "$src" in
+    "$HOME"/*) line="@~${src#"$HOME"}" ;;
+    *)         line="@$src" ;;
+  esac
+
+  # Migration. This file used to be a symlink into the clone. That made the two
+  # tiers compete for ownership of one file and let a third-party tool write
+  # through into a tracked repo; the content it pointed at is now reached by the
+  # import instead, so removing the link loses nothing.
+  if [ -L "$dst" ]; then
+    if [ "$MODE" = check ]; then
+      bad "CLAUDE.md is still a symlink into a clone -- re-run install to migrate"
+      return 0
+    elif mutating; then
+      rm -f -- "$dst"
+      warn "removed the legacy CLAUDE.md symlink (memory now composes by import)"
+    else
+      would "rm $dst (legacy symlink into the clone)"
+    fi
+  fi
+
+  # An @-import whose target is missing is a *silent* no-op: no error, no
+  # warning, zero exit, siblings still load. So the line being present proves
+  # nothing on its own -- `marketplace update` deletes the directory and
+  # re-clones it rather than pulling, and a re-clone that fails (no network, no
+  # git auth) leaves the line pointing at nothing. Without this the host runs
+  # with no memory and --check stays green. warn, not bad: a dev-clone install
+  # or a sandboxed test legitimately has no marketplace directory yet.
+  [ -e "$src" ] || warn "import target is missing: $src (run: claude plugin marketplace update context-lab)"
+
+  local found=0
+  if [ -f "$dst" ]; then
+    found=$(awk -v tail="$MEMORY_IMPORT_TAIL" \
+      'index($0, "@") == 1 && index($0, tail) == length($0) - length(tail) + 1 { n++ }
+       END { print n+0 }' "$dst")
+  fi
+
+  if [ "$found" -eq 1 ] && [ -f "$dst" ] && grep -Fqx -- "$line" "$dst"; then
+    ok "import present exactly once"
+    return 0
+  fi
+
+  if [ "$MODE" = check ]; then
+    case "$found" in
+      0) bad "CLAUDE.md does not import the context-lab memory block" ;;
+      1) bad "CLAUDE.md imports the memory block by a different path than $line" ;;
+      *) bad "CLAUDE.md imports the memory block $found times" ;;
+    esac
+    return 0
+  fi
+  if ! mutating; then
+    [ "$found" -eq 0 ] && would "add '$line' to $dst" || would "collapse $found memory imports in $dst to '$line'"
+    return 0
+  fi
+
+  local tmp="$dst.context-lab.$$"
+  if [ "$found" -eq 0 ]; then
+    # Insert into the leading import header rather than appending, so anything
+    # the operator has written below stays below -- the free region is where a
+    # host overrides the block, and an override under an import is the point.
+    if [ -f "$dst" ]; then
+      awk -v line="$line" '
+        BEGIN { header = 1; inserted = 0 }
+        {
+          if (header && $0 !~ /^@/ && $0 !~ /^[[:space:]]*$/) { print line; inserted = 1; header = 0 }
+          print
+        }
+        END { if (!inserted) print line }' "$dst" > "$tmp" && mv -- "$tmp" "$dst"
+    else
+      mkdir -p -- "$(dirname -- "$dst")"
+      printf '%s\n' "$line" > "$dst"
+    fi
+    ok "added $line"
+  else
+    # Any spelling of our import collapses to one canonical line, in place.
+    awk -v line="$line" -v tail="$MEMORY_IMPORT_TAIL" '
+      index($0, "@") == 1 && index($0, tail) == length($0) - length(tail) + 1 {
+        if (!seen) { print line; seen = 1 }
+        next
+      }
+      { print }' "$dst" > "$tmp" && mv -- "$tmp" "$dst"
+    ok "collapsed $found memory import(s) to one canonical line"
+  fi
+}
+
 # ---------------------------------------------------- 5. settings merge ------
 
 # Deep-merge the manifest over live settings, then delete the unset keys.
@@ -463,6 +579,7 @@ check_prereqs
 install_rtk
 install_plugin
 link_files
+memory_import
 merge_settings
 shell_exports
 

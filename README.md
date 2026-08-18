@@ -3,19 +3,47 @@
 The lab where agent context is designed, and the package that ships it to every
 host in the fleet.
 
-```sh
-git clone https://github.com/luutuankiet/context-lab.git ~/dev/context-lab
-cd ~/dev/context-lab && ./install.sh
-```
-
-Then keep it current with `git pull`. Skills are served from the clone, so a pull
-is all they need; `install.sh` is what re-applies the config tier. There is no
-credential to put on a machine.
+**No clone required.** `marketplace add` fetches the whole repository for you, so
+all three commands are typed as-is:
 
 ```sh
-cd ~/dev/context-lab && git pull && ./install.sh   # config tier + skills plugin
-./install.sh --check                               # verify, mutate nothing
+claude plugin marketplace add luutuankiet/context-lab
+claude plugin install context-lab@context-lab
+~/.claude/plugins/marketplaces/context-lab/install.sh
 ```
+
+**The third command is the one nothing will remind you about.** The first two give
+you the skills; the plugin model has no post-install step of any kind, so the
+config tier — statusline, hooks, settings, the user-memory import — is applied only
+by running the installer out of the fetched clone. There is no credential to put on
+a machine.
+
+**The installer is a one-time bootstrap, not part of the update loop.** To keep a
+host current you run one command, and it refreshes skills *and* user memory
+together — the memory import points into the directory this re-fetches:
+
+```sh
+claude plugin marketplace update context-lab
+```
+
+Re-run the installer only when the *installer's own* scope changes — a new owned
+`settings.json` key, a new hook, a new shell export. Editing memory or a skill
+never needs it:
+
+```sh
+~/.claude/plugins/marketplaces/context-lab/install.sh
+~/.claude/plugins/marketplaces/context-lab/install.sh --check   # verify, mutate nothing
+```
+
+⚠️ `marketplace update` **deletes the directory and re-clones** rather than pulling.
+The path is stable, so the import survives — but an update that dies partway (no
+network, no git auth) leaves a host silently running with no memory at all, because
+an unresolved `@`-import produces no error. `--check` warns when the target is
+missing; it is the only thing that will tell you.
+
+Developing on it instead? Clone it anywhere you like and run that clone's
+`install.sh`; only the two linked config files follow the clone, while user memory
+always imports from the marketplace copy.
 
 ## What is in here
 

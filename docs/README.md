@@ -32,8 +32,9 @@ crashing.
 | a shell script in this repo aborts with unbound variable on one machine only, and runs fine everywhere else | [EMPTY_ARRAY_IS_FATAL_UNDER_SET_U](traps/EMPTY_ARRAY_IS_FATAL_UNDER_SET_U.md) | shell scripts | 2026-08-17 |
 | install.sh prints `ok <plugin> installed`, the session has none of that plugin's skills, and `claude plugin list` does not show it | [INSTALLER_REPORTS_A_PLUGIN_IT_NEVER_INSTALLED](traps/INSTALLER_REPORTS_A_PLUGIN_IT_NEVER_INSTALLED.md) | user-tier installer | 2026-08-18 |
 | a host works fine but edits I make in the clone never reach it any more | [LINK_REPLACED_BY_A_REAL_FILE](traps/LINK_REPLACED_BY_A_REAL_FILE.md) | user-tier installer | 2026-08-17 |
+| the agent ignores fleet-wide rules on one host and nothing anywhere reports a problem | [MEMORY_IMPORT_RESOLVES_TO_NOTHING](traps/MEMORY_IMPORT_RESOLVES_TO_NOTHING.md) | user-tier installer | 2026-08-18 |
 | a hook that another tool installed stopped firing after I ran install.sh, and settings.json looks fine | [PRETOOLUSE_HOOK_GONE_AFTER_INSTALL](traps/PRETOOLUSE_HOOK_GONE_AFTER_INSTALL.md) | user-tier installer | 2026-08-17 |
-| git status in the context-lab clone shows claude/CLAUDE.md modified on a host I only just installed, and I did not edit it | [RTK_IMPORT_APPENDED_TWICE](traps/RTK_IMPORT_APPENDED_TWICE.md) | user-tier installer | 2026-08-17 |
+| git status in the context-lab clone shows claude/CLAUDE.md modified on a host I only just installed, and I did not edit it | [RTK_IMPORT_APPENDED_TWICE](traps/RTK_IMPORT_APPENDED_TWICE.md) | user-tier installer | 2026-08-18 |
 
 ## Reference
 
@@ -66,5 +67,6 @@ it with a new one rather than editing it.
 - [The marketplace source is the GitHub repo](adr/0008-the-marketplace-source-is-the-github-repo.md)
 - [A tool's manual lives in the tool's repo, and the catalogue only points](adr/0009-a-tools-manual-lives-in-the-tools-repo.md)
 - [The catalogue has been swept for manuals once, and holds none](adr/0010-the-catalogue-has-been-swept-for-manuals-once.md)
+- [User memory composes by `@`-import, never by symlink](adr/0011-user-memory-composes-by-import-not-symlink.md)
 
 <!-- END GENERATED INDEX -->

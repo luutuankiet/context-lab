@@ -21,16 +21,22 @@ Escape hatches, all valid alongside `--check`: `--no-rtk`, `--no-plugin`,
 
 ## The design is symlinks, not copies
 
-`install.sh` links three individual files out of the clone:
+`install.sh` links two individual files out of the clone:
 
 | repo path | lands at |
 |---|---|
-| `claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
 | `claude/statusline.sh` | `~/.claude/statusline.sh` |
 | `claude/hooks/token-tracker.sh` | `~/.claude/hooks/token-tracker.sh` |
 
 The manifest is the `LINKS` array at the top of `install.sh`, written as
 `<repo path>|<claude path>`.
+
+`claude/CLAUDE.md` is **not** among them. User memory is composed by `@`-import
+instead: `~/.claude/CLAUDE.md` is a real host-local file that no repository owns,
+and step 4b adds exactly one line to it pointing at the marketplace clone
+(`~/.claude/plugins/marketplaces/context-lab/claude/CLAUDE.md`). A second tier adds
+its own line without contending for the file. See
+[ADR 0011](../adr/0011-user-memory-composes-by-import-not-symlink.md).
 
 An edit made on a host writes straight through the link into the tracked file, so
 drift is visible as ordinary `git status` output in the clone:
