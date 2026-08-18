@@ -27,6 +27,23 @@ Skills that encode fleet topology — host names, endpoints, account-to-project
 mappings — do not live here. They live in the private companion repo, and the test
 for which is not "is it sensitive" but **"is it only relevant to me"**.
 
+**The private repo is its own marketplace, and `install.sh` must never name it.**
+This installer is public, so naming it would publish that repo's existence to
+every consumer and hand them a plugin entry that 404s. The boundary is the
+remote: anyone may add this marketplace, only the owner can resolve that one.
+A host that wants the topology skills adds them itself:
+
+```sh
+claude plugin marketplace add luutuankiet/context-lab-private
+claude plugin install context-lab-private@context-lab-private
+```
+
+Note that repo pins a `version` where this one deliberately does not, and it is
+**GitHub-sourced**, so it is served from the cache copy rather than from a clone.
+Its update path is therefore genuinely `marketplace update` + `plugin update`,
+not `git pull` — the two repos are not symmetrical here, and that is a live
+question rather than a settled one.
+
 ## The bucket rule is one line of JSON
 
 `.claude-plugin/plugin.json` declares `"skills": ["./skills/stable"]`. A listed
@@ -54,6 +71,21 @@ claude plugin install context-lab@context-lab     # first-class source
 ```
 
 `install.sh` step 3 does both, idempotently, for this plugin and the upstream one.
+
+**Write for the oldest CLI in the fleet, not the newest.** Measured against
+2.1.81 on personal, where the others run 2.1.233/234:
+
+| | 2.1.81 | 2.1.233+ |
+|---|---|---|
+| `plugin install --yes` | `error: unknown option '-y'` | accepted |
+| `plugin details` | no such command | works |
+| `plugin validate` on the marketplace | fails: root `description` unrecognized | `--strict` *wants* a description |
+| directory source, versionless sha, `skills` allowlist | all work | all work |
+
+The mechanism itself is stable across both; only the CLI's own surface moved. So
+`install.sh` passes no `-y`, and the marketplace keeps its `description` — it is
+rejected by the old validator but ignored harmlessly by the old installer, and the
+publish gate runs on the authoring host.
 
 **`plugin.json` deliberately declares no `version`**, so the recorded version is
 the source commit sha rather than a number somebody has to remember to bump.

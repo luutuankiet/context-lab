@@ -231,8 +231,12 @@ install_one_plugin() {
   # fetched the marketplace, leaving it with rtk initialised and no symlinks, no
   # settings merge and no shell exports. A half-configured host is worse than a
   # reported failure, because nothing announces it.
+  # No `-y`. The flag only matters for a marketplace-declared *command* install,
+  # which neither of these is -- and it does not exist at all on the oldest CLI in
+  # the fleet (2.1.81 on personal), where passing it fails the install outright
+  # with `error: unknown option '-y'`.
   local out
-  if out=$(claude plugin install "$id" -y 2>&1); then
+  if out=$(claude plugin install "$id" 2>&1); then
     ok "$id installed"
     return 0
   fi
@@ -243,7 +247,7 @@ install_one_plugin() {
   # That was the real cause on all three hosts rolled out after thinkpad.
   warn "refreshing the marketplace cache and retrying once"
   claude plugin marketplace update "$marketplace" >/dev/null 2>&1 || true
-  if out=$(claude plugin install "$id" -y 2>&1); then
+  if out=$(claude plugin install "$id" 2>&1); then
     ok "$id installed (after a marketplace refresh)"
   else
     printf '%s\n' "$out" | sed 's/^/        /'
