@@ -41,7 +41,7 @@ Simply true, and expensive to re-derive.
 
 | page | summary | verified |
 |---|---|---|
-| [The owned settings keys](reference/owned-settings-keys.md) | which sixteen keys install.sh takes over, which are deliberately left to the host, and which are actively deleted | 2026-08-17 |
+| [The owned settings keys](reference/owned-settings-keys.md) | which nineteen keys install.sh takes over, which are deliberately left to the host, and which are actively deleted | 2026-08-18 |
 
 ## Guides
 

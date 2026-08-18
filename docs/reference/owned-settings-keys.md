@@ -1,7 +1,7 @@
 ---
 title: The owned settings keys
-summary: which sixteen keys install.sh takes over, which are deliberately left to the host, and which are actively deleted
-verified: 2026-08-17
+summary: which nineteen keys install.sh takes over, which are deliberately left to the host, and which are actively deleted
+verified: 2026-08-18
 ---
 
 # The owned settings keys
@@ -13,7 +13,7 @@ there too. Anything not listed here is the host's business.
 The values live in the manifest and are not repeated here. What is expensive to
 re-derive is *why each key is owned*, and that is what this page holds.
 
-## Owned — sixteen keys
+## Owned — nineteen keys
 
 | key | why it is fleet-wide |
 |---|---|
@@ -33,6 +33,9 @@ re-derive is *why each key is owned*, and that is what this page holds.
 | `autoScrollEnabled` | Terminal behaviour that should be identical everywhere. |
 | `agentPushNotifEnabled` | On. |
 | `tui` | `fullscreen`. |
+| `showThinkingSummaries` | On. Thinking is hidden in an interactive session unless this is set, and `Ctrl+O` transcript mode — the manual alternative — cannot be configured fleet-wide, which is the whole reason this is owned rather than left to the host. |
+| `verbose` | On. With `showThinkingSummaries`, this is what makes thinking render in full in the main view instead of a collapsed one-liner. **It was previously host-local**; it moved because the pair only works together, and half the pair is not worth owning. It changes more than thinking output — that was accepted knowingly. |
+| `extraKnownMarketplaces` | Registers this repo's own marketplace, so the plugin `enabledPlugins` flips on is resolvable. Only the public marketplace can live here: a private one names a repository a public consumer cannot fetch, and their install would fail. |
 
 **`bypassPermissions` is fleet-wide, and the consequence is stated rather than
 buried: there is no permission gate on any host, including a work machine.** That
@@ -44,10 +47,15 @@ generator.
 
 Never merged, never checked, never reported as drift:
 
-`verbose`, `spinnerTipsEnabled`, `promptSuggestionEnabled`,
+`spinnerTipsEnabled`, `promptSuggestionEnabled`,
 `terminalProgressBarEnabled`, `prefersReducedMotion`, `voice`, `voiceEnabled`
 
 These are how one machine feels to sit at. Standardising them buys nothing.
+
+`verbose` used to sit in this list and no longer does — see the owned table above
+for why. The reasoning that put it here was sound in isolation and wrong in
+company: it is a rendering preference, but it is also the second half of the
+thinking-output pair, and owning only the first half renders nothing.
 
 ## Actively unset
 

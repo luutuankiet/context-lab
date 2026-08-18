@@ -53,6 +53,8 @@
   "skipDangerousModePermissionPrompt": true,
   "skipAutoPermissionPrompt": true,
   "autoScrollEnabled": true,
+  "showThinkingSummaries": true,
+  "verbose": true,
   "agentPushNotifEnabled": true,
   "tui": "fullscreen",
   "extraKnownMarketplaces": {

@@ -23,13 +23,14 @@ fresh() {
   export SHELL=/bin/zsh   # pin the login shell so the rc target is deterministic
   # A realistic pre-existing settings.json: rtk owns PreToolUse, the dead
   # enabledMcpjsonServers and agent keys are present, and there is a host-local pref
-  # (verbose) that we do not own and must not touch.
+  # (spinnerTipsEnabled) that we do not own and must not touch. Do not use
+  # `verbose` as that canary -- it is owned now.
   printf '%s\n' \
     '{' \
     '  "enabledMcpjsonServers": ["proxy"],' \
     '  "agent": "gsd-lite",' \
     '  "hooks": { "PreToolUse": [ { "matcher": "Bash", "hooks": [ { "type": "command", "command": "/rtk/hook.sh" } ] } ] },' \
-    '  "verbose": false,' \
+    '  "spinnerTipsEnabled": false,' \
     '  "effortLevel": "low"' \
     '}' > "$CLAUDE_CONFIG_DIR/settings.json"
   : > "$HOME/.zshrc"
@@ -66,8 +67,10 @@ assert "our UserPromptSubmit hook installed" "1" \
   "$(jq -r '.hooks.UserPromptSubmit | length' "$CLAUDE_CONFIG_DIR/settings.json")"
 assert "owned key overwritten (effortLevel low -> high)" "high" \
   "$(jq -r '.effortLevel' "$CLAUDE_CONFIG_DIR/settings.json")"
-assert "unowned host-local key preserved (verbose)" "false" \
-  "$(jq -r '.verbose' "$CLAUDE_CONFIG_DIR/settings.json")"
+assert "unowned host-local key preserved (spinnerTipsEnabled)" "false" \
+  "$(jq -r '.spinnerTipsEnabled' "$CLAUDE_CONFIG_DIR/settings.json")"
+assert "owned key added where the host had none (showThinkingSummaries)" "true" \
+  "$(jq -r '.showThinkingSummaries' "$CLAUDE_CONFIG_DIR/settings.json")"
 assert "shell exports appended" "2" \
   "$(grep -c '^export ' "$HOME/.zshrc")"
 
@@ -101,7 +104,7 @@ assert "malformed file left untouched" "{ this is not json" "$(cat "$CLAUDE_CONF
 banner "10. a genuinely fresh host (no settings.json at all)"
 fresh; rm -f "$CLAUDE_CONFIG_DIR/settings.json"
 run >/dev/null 2>&1; assert "install exits 0 with no prior settings" "0" "$?"
-assert "manifest keys all present" "17" "$(jq -r 'keys | length' "$REPO/claude/settings.owned.json")"
+assert "manifest keys all present" "19" "$(jq -r 'keys | length' "$REPO/claude/settings.owned.json")"
 run --check >/dev/null 2>&1; assert "--check passes on the fresh host" "0" "$?"
 
 banner "11. the shipped scripts actually run"
