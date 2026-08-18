@@ -16,7 +16,7 @@ decided and maturity is the only axis left inside it.
 
 | bucket | count today | meaning |
 |---|---|---|
-| `skills/stable/` | 11 | graduated; safe to depend on; **the only bucket that installs** |
+| `skills/stable/` | 10 | graduated; safe to depend on; **the only bucket that installs** |
 | `skills/in-progress/` | 1 | live iteration; may change or disappear without warning |
 | `skills/deprecated/` | 11 | the off-switch — excluded by the allowlist, no config edit needed |
 

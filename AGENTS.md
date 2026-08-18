@@ -24,7 +24,7 @@ AGENTS.md      always in context — keep it under 4 KB     CLAUDE.md  = @AGENTS
 claude/        the payload installed onto every host      install.sh the distributor
 .claude-plugin/ marketplace.json + plugin.json — how skills/stable/ reaches a host
 skills/        stable | in-progress | deprecated          scripts/   repo tooling
-docs/          prose, indexed in docs/README.md           .claude/   never shipped
+docs/          prose, indexed in docs/README.md           .claude/   the two index skills
 ```
 
 Only `skills/stable/` installs, enforced by `"skills": ["./skills/stable"]` in
@@ -34,8 +34,7 @@ directory between buckets is a behaviour change, not filing.
 Skills ship as the `context-lab` **plugin**, invoked namespaced
 (`context-lab:<name>`). The marketplace source is this clone, so a session reads
 skills **from here, not from a copy** — an edit is live for the next session.
-Address a skill's own scripts from its base directory; `$CLAUDE_PLUGIN_ROOT` is
-empty in a Bash call.
+Address a skill's own scripts from its base directory.
 
 ## Check commands
 
@@ -44,7 +43,8 @@ empty in a Bash call.
 scripts/skills-publish-gate.sh    # symlink ban + name/dir match + manifest validate
 ./install.sh --dry-run            # print every mutation without performing it
 ./test-install.sh                 # assertions against a throwaway $HOME
-scripts/gen-docs-index.sh --check # fail if docs/README.md is stale
+scripts/gen-docs-index.sh --check # fail if any generated index is stale
+skills/stable/*/tests/run.sh      # a skill's own regression tests, where it has them
 ```
 
 No CI, no other test runner. Nothing runs these for you.
