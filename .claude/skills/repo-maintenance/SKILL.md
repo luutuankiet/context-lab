@@ -30,6 +30,7 @@ crashing.
 | a shell script in this repo aborts with unbound variable on one machine only, and runs fine everywhere else | [EMPTY_ARRAY_IS_FATAL_UNDER_SET_U](../../../docs/traps/EMPTY_ARRAY_IS_FATAL_UNDER_SET_U.md) | shell scripts | 2026-08-17 |
 | install.sh prints `ok <plugin> installed`, the session has none of that plugin's skills, and `claude plugin list` does not show it | [INSTALLER_REPORTS_A_PLUGIN_IT_NEVER_INSTALLED](../../../docs/traps/INSTALLER_REPORTS_A_PLUGIN_IT_NEVER_INSTALLED.md) | user-tier installer | 2026-08-18 |
 | a host works fine but edits I make in the clone never reach it any more | [LINK_REPLACED_BY_A_REAL_FILE](../../../docs/traps/LINK_REPLACED_BY_A_REAL_FILE.md) | user-tier installer | 2026-08-17 |
+| the agent ignores fleet-wide rules on one host and nothing anywhere reports a problem | [MEMORY_IMPORT_RESOLVES_TO_NOTHING](../../../docs/traps/MEMORY_IMPORT_RESOLVES_TO_NOTHING.md) | user-tier installer | 2026-08-18 |
 | a hook that another tool installed stopped firing after I ran install.sh, and settings.json looks fine | [PRETOOLUSE_HOOK_GONE_AFTER_INSTALL](../../../docs/traps/PRETOOLUSE_HOOK_GONE_AFTER_INSTALL.md) | user-tier installer | 2026-08-17 |
 | git status in the context-lab clone shows claude/CLAUDE.md modified on a host I only just installed, and I did not edit it | [RTK_IMPORT_APPENDED_TWICE](../../../docs/traps/RTK_IMPORT_APPENDED_TWICE.md) | user-tier installer | 2026-08-18 |
 
