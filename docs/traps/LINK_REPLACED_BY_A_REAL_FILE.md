@@ -46,12 +46,14 @@ So the repair is `./install.sh`, and then read the backup to see what you had.
 ## How to verify
 
 ```sh
-for f in CLAUDE.md statusline.sh hooks/token-tracker.sh; do
+for f in statusline.sh hooks/token-tracker.sh; do
   printf '%-26s %s\n' "$f" "$([ -L ~/.claude/"$f" ] && readlink -f ~/.claude/"$f" || echo 'NOT A LINK')"
 done
 ```
 
-Every line must resolve into the clone. `[ -e ]` is not enough — that is the test
+`CLAUDE.md` is deliberately absent from that list: it is a real host-local file
+composed by `@`-import, not a link, so `NOT A LINK` is the correct state for it
+(ADR 0009). Every line above must resolve into the clone. `[ -e ]` is not enough — that is the test
 that passes for both shapes and is why the problem hides.
 
 ## The general rule

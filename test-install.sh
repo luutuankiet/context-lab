@@ -54,8 +54,11 @@ banner "3. install"
 run; assert "install exits 0" "0" "$?"
 
 banner "4. post-install invariants"
-assert "CLAUDE.md is a symlink" "link" "$([ -L "$CLAUDE_CONFIG_DIR/CLAUDE.md" ] && echo link || echo no)"
-assert "CLAUDE.md points into the clone" "$REPO/claude/CLAUDE.md" "$(readlink -f "$CLAUDE_CONFIG_DIR/CLAUDE.md")"
+assert "CLAUDE.md is a real file, not a link" "file" \
+  "$([ -f "$CLAUDE_CONFIG_DIR/CLAUDE.md" ] && [ ! -L "$CLAUDE_CONFIG_DIR/CLAUDE.md" ] && echo file || echo no)"
+assert "CLAUDE.md imports the marketplace memory block exactly once" "1" \
+  "$(awk '/^@.*\/plugins\/marketplaces\/context-lab\/claude\/CLAUDE\.md$/ { n++ } END { print n+0 }' \
+     "$CLAUDE_CONFIG_DIR/CLAUDE.md")"
 assert "token-tracker.sh is a symlink" "link" "$([ -L "$CLAUDE_CONFIG_DIR/hooks/token-tracker.sh" ] && echo link || echo no)"
 assert "dead enabledMcpjsonServers key removed" "false" \
   "$(jq -r 'has("enabledMcpjsonServers")' "$CLAUDE_CONFIG_DIR/settings.json")"
@@ -71,7 +74,8 @@ assert "unowned host-local key preserved (spinnerTipsEnabled)" "false" \
   "$(jq -r '.spinnerTipsEnabled' "$CLAUDE_CONFIG_DIR/settings.json")"
 assert "owned key added where the host had none (showThinkingSummaries)" "true" \
   "$(jq -r '.showThinkingSummaries' "$CLAUDE_CONFIG_DIR/settings.json")"
-assert "shell exports appended" "2" \
+# Counts the vars in shell_exports()'s list; bump both together when it grows.
+assert "shell exports appended" "3" \
   "$(grep -c '^export ' "$HOME/.zshrc")"
 
 banner "5. --check now passes"
@@ -114,15 +118,42 @@ assert "statusline.sh runs without bc" "0" "$?"
 printf '%s' '{}' | bash "$REPO/claude/hooks/token-tracker.sh" PostToolUse >/dev/null 2>&1
 assert "token-tracker.sh no-ops on an empty payload" "0" "$?"
 
-banner "12. CLAUDE.md keeps the literal reference rtk detects"
-# rtk init -g looks for the exact string `@RTK.md`. Rewriting it to an absolute
-# path makes rtk think its reference is missing and append a second one --
-# through the symlink, into the tracked file, on every host. awk not rg: joon
-# has neither rg nor bc, and this suite must run anywhere the installer does.
-assert "a bare @RTK.md line is present" "1" \
+banner "12. the payload carries no import of its own"
+# The payload is imported, never linked, so a relative @import inside it would
+# resolve against the marketplace clone rather than $CLAUDE_DIR and silently
+# find nothing. rtk's own reference belongs in the host-local file rtk writes.
+# awk not rg: the smallest host in the fleet has neither rg nor bc, and this
+# suite must run anywhere the installer does.
+assert "payload carries no @RTK.md import" "0" \
   "$(awk '/^@RTK\.md$/ { n++ } END { print n+0 }' "$REPO/claude/CLAUDE.md")"
-assert "no absolute RTK import" "0" \
-  "$(awk '/^@~\/\.claude\/RTK\.md$/ { n++ } END { print n+0 }' "$REPO/claude/CLAUDE.md")"
+
+banner "13. the import is idempotent under re-install"
+run >/dev/null 2>&1
+run >/dev/null 2>&1
+assert "three installs leave exactly one import" "1" \
+  "$(awk '/^@.*\/plugins\/marketplaces\/context-lab\/claude\/CLAUDE\.md$/ { n++ } END { print n+0 }' \
+     "$CLAUDE_CONFIG_DIR/CLAUDE.md")"
+
+banner "14. a hand-written free region survives an install"
+printf '\n## host notes\nkeep me\n' >> "$CLAUDE_CONFIG_DIR/CLAUDE.md"
+run >/dev/null 2>&1
+assert "free region untouched" "1" \
+  "$(grep -cx 'keep me' "$CLAUDE_CONFIG_DIR/CLAUDE.md")"
+assert "still exactly one import after a free-region edit" "1" \
+  "$(awk '/^@.*\/plugins\/marketplaces\/context-lab\/claude\/CLAUDE\.md$/ { n++ } END { print n+0 }' \
+     "$CLAUDE_CONFIG_DIR/CLAUDE.md")"
+
+banner "15. a near-miss spelling collapses instead of duplicating"
+# The rtk failure, reproduced deliberately: a second import of the same target
+# written a different way must collapse to one line, not become a second import.
+printf '@%s/plugins/marketplaces/context-lab/claude/CLAUDE.md\n' "$CLAUDE_CONFIG_DIR" \
+  >> "$CLAUDE_CONFIG_DIR/CLAUDE.md"
+run >/dev/null 2>&1
+assert "near-miss spelling collapsed to one" "1" \
+  "$(awk '/^@.*\/plugins\/marketplaces\/context-lab\/claude\/CLAUDE\.md$/ { n++ } END { print n+0 }' \
+     "$CLAUDE_CONFIG_DIR/CLAUDE.md")"
+assert "free region still survived the collapse" "1" \
+  "$(grep -cx 'keep me' "$CLAUDE_CONFIG_DIR/CLAUDE.md")"
 
 rm -rf "$T"
 printf '\n======== %d passed, %d failed\n' "$PASS" "$FAIL"

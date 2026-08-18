@@ -33,7 +33,7 @@ crashing.
 | install.sh prints `ok <plugin> installed`, the session has none of that plugin's skills, and `claude plugin list` does not show it | [INSTALLER_REPORTS_A_PLUGIN_IT_NEVER_INSTALLED](traps/INSTALLER_REPORTS_A_PLUGIN_IT_NEVER_INSTALLED.md) | user-tier installer | 2026-08-18 |
 | a host works fine but edits I make in the clone never reach it any more | [LINK_REPLACED_BY_A_REAL_FILE](traps/LINK_REPLACED_BY_A_REAL_FILE.md) | user-tier installer | 2026-08-17 |
 | a hook that another tool installed stopped firing after I ran install.sh, and settings.json looks fine | [PRETOOLUSE_HOOK_GONE_AFTER_INSTALL](traps/PRETOOLUSE_HOOK_GONE_AFTER_INSTALL.md) | user-tier installer | 2026-08-17 |
-| git status in the context-lab clone shows claude/CLAUDE.md modified on a host I only just installed, and I did not edit it | [RTK_IMPORT_APPENDED_TWICE](traps/RTK_IMPORT_APPENDED_TWICE.md) | user-tier installer | 2026-08-17 |
+| git status in the context-lab clone shows claude/CLAUDE.md modified on a host I only just installed, and I did not edit it | [RTK_IMPORT_APPENDED_TWICE](traps/RTK_IMPORT_APPENDED_TWICE.md) | user-tier installer | 2026-08-18 |
 
 ## Reference
 
@@ -64,5 +64,6 @@ it with a new one rather than editing it.
 - [Skills ship as a plugin; config stays linked](adr/0006-skills-ship-as-a-plugin-config-stays-linked.md)
 - [One entry point for repo context, reached by a scanner](adr/0007-one-entry-point-reached-by-a-scanner.md)
 - [The marketplace source is the GitHub repo](adr/0008-the-marketplace-source-is-the-github-repo.md)
+- [User memory composes by `@`-import, never by symlink](adr/0009-user-memory-composes-by-import-not-symlink.md)
 
 <!-- END GENERATED INDEX -->

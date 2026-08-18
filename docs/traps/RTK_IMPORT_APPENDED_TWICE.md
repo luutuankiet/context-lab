@@ -1,10 +1,19 @@
 ---
 symptom: "git status in the context-lab clone shows claude/CLAUDE.md modified on a host I only just installed, and I did not edit it"
 area: user-tier installer
-verified: 2026-08-17
+verified: 2026-08-18
 ---
 
 # `claude/CLAUDE.md` gains a second import on every fresh host
+
+> **Retired by construction — this can no longer happen.** `~/.claude/CLAUDE.md`
+> stopped being a symlink into the clone
+> ([ADR 0009](../adr/0009-user-memory-composes-by-import-not-symlink.md)), so rtk
+> writes to a host-local file that no repository tracks. The mechanism below is
+> kept because the *shape* of the failure recurs: a tool that detects its own
+> reference by literal string, writing into a file something else also owns.
+
+
 
 ## Symptom
 
@@ -42,27 +51,27 @@ resolves against **the link's directory**, not the link target's.
 
 ## Fix
 
-The first line of `claude/CLAUDE.md` must be exactly:
+Historically: keep the first line of `claude/CLAUDE.md` exactly `@RTK.md`, bare and
+relative, as `rtk init -g` writes it.
 
-```
-@RTK.md
-```
-
-Bare, relative, and left exactly as `rtk init -g` writes it. `RTK.md` itself is
-written by rtk and is deliberately not tracked in this repo.
+**That fix is now obsolete and the assertion is inverted.** `claude/CLAUDE.md` is
+imported rather than linked, so a relative `@RTK.md` inside it would resolve
+against the marketplace clone and find nothing. The payload therefore carries no
+import of its own, and rtk's line lives in the host-local `~/.claude/CLAUDE.md`
+where rtk writes it.
 
 ## How to verify
 
 ```sh
-awk '/^@RTK\.md$/       { n++ } END { print n+0 }' claude/CLAUDE.md   # must be 1
-awk '/^@~\/\.claude\/RTK\.md$/ { n++ } END { print n+0 }' claude/CLAUDE.md   # must be 0
+awk '/^@RTK\.md$/ { n++ } END { print n+0 }' claude/CLAUDE.md   # must now be 0
 ```
 
-`test-install.sh` asserts both, so this cannot regress silently.
+`test-install.sh` asserts that absence, so the old shape cannot come back.
 
 ## The general rule
 
-**Where a tool owns a file this repo also tracks, match the tool's literal
-expectations rather than improving on them.** rtk writing through the symlink is
-the drift-visibility property working as designed — and it only works if the
-tracked content is byte-for-byte what the tool would have written itself.
+**Where a tool owns a file this repo also tracks, either match the tool's literal
+expectations byte-for-byte, or stop sharing the file.** This repo tried the first
+for a year and then chose the second: a file with more than one writer is a
+standing bug, and the durable fix was to give each writer its own line rather than
+to out-guess a literal string match.
