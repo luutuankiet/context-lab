@@ -331,7 +331,11 @@ memory_import() {
   step "4b. user memory -> $CLAUDE_DIR/CLAUDE.md"
 
   local dst="$CLAUDE_DIR/CLAUDE.md"
-  local src="$CLAUDE_DIR/plugins/marketplaces/context-lab$MEMORY_IMPORT_TAIL"
+  # TAIL is already the whole path below $CLAUDE_DIR -- do not prepend any of it
+  # again. Getting this wrong is invisible: the doubled path is self-consistent,
+  # so the idempotence tests still pass and only the target-existence check below
+  # notices that nothing is there.
+  local src="$CLAUDE_DIR$MEMORY_IMPORT_TAIL"
   local line
 
   # Prefer the ~-anchored spelling: it is what a colleague's host gets, so the

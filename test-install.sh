@@ -146,7 +146,10 @@ assert "still exactly one import after a free-region edit" "1" \
 banner "15. a near-miss spelling collapses instead of duplicating"
 # The rtk failure, reproduced deliberately: a second import of the same target
 # written a different way must collapse to one line, not become a second import.
-printf '@%s/plugins/marketplaces/context-lab/claude/CLAUDE.md\n' "$CLAUDE_CONFIG_DIR" \
+# A '/./' segment: a different spelling of the same target, which is exactly the
+# shape that produced a duplicate rtk import. Matching is on the path tail, so
+# any prefix spelling collapses.
+printf '@%s/./plugins/marketplaces/context-lab/claude/CLAUDE.md\n' "$CLAUDE_CONFIG_DIR" \
   >> "$CLAUDE_CONFIG_DIR/CLAUDE.md"
 run >/dev/null 2>&1
 assert "near-miss spelling collapsed to one" "1" \
@@ -154,6 +157,20 @@ assert "near-miss spelling collapsed to one" "1" \
      "$CLAUDE_CONFIG_DIR/CLAUDE.md")"
 assert "free region still survived the collapse" "1" \
   "$(grep -cx 'keep me' "$CLAUDE_CONFIG_DIR/CLAUDE.md")"
+
+banner "16. the import points at the real payload path, not a doubled one"
+# Every assertion above matches the path with a leading '.*', so a prefix built
+# wrong -- '<dir>/plugins/marketplaces/context-lab' + a tail that already
+# contains it -- satisfies all of them while pointing at nothing. Assert the
+# whole line, and assert the target it names actually exists in the payload.
+# The sandbox points $HOME at the throwaway tree too, so the installer picks the
+# ~-anchored spelling -- the same literal a real host gets, which is the point of
+# preferring it.
+assert "import line is exactly the expected path" "1" \
+  "$(grep -cxF '@~/.claude/plugins/marketplaces/context-lab/claude/CLAUDE.md' \
+     "$CLAUDE_CONFIG_DIR/CLAUDE.md")"
+assert "the path the import names exists in the repo" "1" \
+  "$([ -f "$REPO/claude/CLAUDE.md" ] && echo 1 || echo 0)"
 
 rm -rf "$T"
 printf '\n======== %d passed, %d failed\n' "$PASS" "$FAIL"
