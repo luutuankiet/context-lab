@@ -71,7 +71,7 @@ assert "unowned host-local key preserved (spinnerTipsEnabled)" "false" \
   "$(jq -r '.spinnerTipsEnabled' "$CLAUDE_CONFIG_DIR/settings.json")"
 assert "owned key added where the host had none (showThinkingSummaries)" "true" \
   "$(jq -r '.showThinkingSummaries' "$CLAUDE_CONFIG_DIR/settings.json")"
-assert "shell exports appended" "2" \
+assert "shell exports appended" "3" \
   "$(grep -c '^export ' "$HOME/.zshrc")"
 
 banner "5. --check now passes"

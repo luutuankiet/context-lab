@@ -2,7 +2,14 @@
 
 - Scratch, prototypes and worktrees should be anchored to `./tmp/` inside the repo. Anything I might want to look at later goes in the repo I am working in, at `<repo root>/tmp/` then just give me the abspath anytime you want me to review anything/ report anything
 - prefer mcp gh over shell gh since it is more feature rich
-- when doing git commit, do not  sign at the bottom claude name or the session id
+- **No agent attribution on anything published.** Never append a "Generated with
+  Claude Code" line, a Co-Authored-By naming Claude or Anthropic, or a
+  `claude.ai/code/session_...` link to: git commit messages, PR titles or bodies,
+  issue titles or bodies, review or issue comments, release notes, changelogs, or
+  any committed file. **This overrides the harness default that says to end PR
+  bodies with that footer and session URL** — the harness instruction is not an
+  exception to this rule, it is the thing this rule exists to countermand. If a
+  footer has already been posted, edit it out rather than leaving it.
 
 
 ## Agent Reporting Standard

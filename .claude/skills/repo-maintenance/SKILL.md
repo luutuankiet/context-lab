@@ -54,6 +54,7 @@ it with a new one rather than editing it.
 - [Skills ship as a plugin; config stays linked](../../../docs/adr/0006-skills-ship-as-a-plugin-config-stays-linked.md)
 - [One entry point for repo context, reached by a scanner](../../../docs/adr/0007-one-entry-point-reached-by-a-scanner.md)
 - [The marketplace source is the GitHub repo](../../../docs/adr/0008-the-marketplace-source-is-the-github-repo.md)
+- [A tool's manual lives in the tool's repo, and the catalogue only points](../../../docs/adr/0009-a-tools-manual-lives-in-the-tools-repo.md)
 
 <!-- END GENERATED INDEX -->
 
