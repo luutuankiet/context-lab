@@ -50,13 +50,20 @@ is tracked nowhere, which is where a tool's own generated reference belongs.
 
 `claude plugin marketplace add` fetches the **entire repository**, not just a
 manifest, to `~/.claude/plugins/marketplaces/<name>/`. That path is keyed by
-marketplace name, so it never moves, and `claude plugin marketplace update`
-refreshes it in place.
+marketplace name, so it never moves.
 
 The plugin *cache* is the opposite and must not be imported: it is keyed by source
 commit sha, so every push creates a new directory and an import into it would break
-on the next update. Four such directories were live on the authoring host when this
+on the next update. Five such directories were live on the authoring host when this
 was measured, with no stable alias among them.
+
+`claude plugin marketplace update` does **not** pull. It reports `Found stale
+directory, cleaning up and re-cloning` and replaces the directory wholesale — the
+inode changes, the path does not. An `@`-import resolves by path and therefore
+survives; this was measured across a real update, inode `22721092` before and
+`22887499` after, with memory still loading in a fresh session. Anything that
+resolves by inode rather than path would not survive, which is a second reason not
+to point a link at this directory.
 
 ## Consequences
 
@@ -73,6 +80,12 @@ was measured, with no stable alias among them.
   missing produces no error, no warning, and a zero exit; siblings still load. A
   public-only host is a supported configuration with one unresolved line, which is
   exactly the clean degradation this required.
+- **That same silence is the one real failure mode, so it is checked explicitly.**
+  A `marketplace update` that fails partway leaves the line pointing at a directory
+  that no longer exists, and nothing anywhere reports it — the host simply runs
+  without memory. The import line being present proves nothing on its own, so step
+  4b also warns when the target does not exist. It warns rather than fails: a
+  dev-clone install and a sandboxed test both legitimately lack the directory.
 - **The authoring host has no special case.** The import targets the marketplace
   clone everywhere, so a memory edit goes live after commit, push and
   `marketplace update` — the same loop ADR 0008 already imposed on skills. One

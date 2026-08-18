@@ -358,6 +358,15 @@ memory_import() {
     fi
   fi
 
+  # An @-import whose target is missing is a *silent* no-op: no error, no
+  # warning, zero exit, siblings still load. So the line being present proves
+  # nothing on its own -- `marketplace update` deletes the directory and
+  # re-clones it rather than pulling, and a re-clone that fails (no network, no
+  # git auth) leaves the line pointing at nothing. Without this the host runs
+  # with no memory and --check stays green. warn, not bad: a dev-clone install
+  # or a sandboxed test legitimately has no marketplace directory yet.
+  [ -e "$src" ] || warn "import target is missing: $src (run: claude plugin marketplace update context-lab)"
+
   local found=0
   if [ -f "$dst" ]; then
     found=$(awk -v tail="$MEMORY_IMPORT_TAIL" \
