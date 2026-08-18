@@ -385,7 +385,7 @@ shell_exports() {
   step "6. shell exports"
   [ "$DO_SHELL" -eq 1 ] || { warn "skipped (--no-shell)"; return 0; }
 
-  local vars=("MAX_MCP_OUTPUT_TOKENS=500000" "CLAUDE_CODE_MCP_AUTO_BACKGROUND_MS=0")
+  local vars=("MAX_MCP_OUTPUT_TOKENS=500000" "CLAUDE_CODE_MCP_AUTO_BACKGROUND_MS=0" "CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT=0")
 
   # Only the login shell's rc is required. Most hosts here have a .bashrc they
   # never source -- demanding the exports in every rc file that happens to
