@@ -1,0 +1,7 @@
+# Fixture identity vocabulary. Invented terms only — a committed list of real
+# host nicknames would leak precisely what this check exists to catch.
+#
+# One extended-regex pattern per line. Bare tokens are valid EREs, so a plain
+# nickname composes directly.
+bluefin
+acmecorp\.example
