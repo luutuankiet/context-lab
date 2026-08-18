@@ -2,6 +2,14 @@
 
 A non-blocking pattern scan over **newly-authored prose only**. Not over the source notes, not over vendored files, not over the repo at large.
 
+```bash
+skills/stable/promote-working-notes/scripts/topology-check.sh <new-file>...
+```
+
+The script ships the generic classes, which are public constants. It never ships
+the identity half — that is derived below and handed to it as a **vocabulary
+file**. Its regression tests live in `tests/`: `./tests/run.sh`.
+
 That scoping is what makes it work. Over the source set the same scan was **1.32% signal** — 151 hits, 2 real. Over authored prose it earns its keep, because the prose is small and the leak vocabulary is finite and known.
 
 ## The pattern list is never committed
@@ -10,9 +18,35 @@ That scoping is what makes it work. Over the source set the same scan was **1.32
 
 **The derived list is itself sensitive — it is the topology.** Keep it in shell variables or a file outside the repo. Never write it into the working tree, not even to a scratch path, and never paste it into a commit message, PR body, or issue comment. On a real fleet this derivation returns the employer's domain from `~/.ssh/config` on its first line; a public PR body is a leak surface too.
 
-Derive, then scan:
+### The vocabulary file is the interface
+
+The script resolves the vocabulary in this order, first hit wins:
+
+1. `--vocab <file>`
+2. `$TOPOLOGY_VOCAB`
+3. `~/.config/topology-vocab.txt`
+
+One extended-regex pattern per line, `#` comments allowed. Bare tokens are valid
+EREs, so a plain nickname composes directly and the derivation below can write
+straight into the file.
+
+`$HOME/.config/` is deliberate: it is **outside the working tree**, which is the
+one place this skill's own rule forbids the derived list from ever landing.
+
+Two failure modes the script treats as *not run* rather than as clean, and any
+rewrite must keep both:
+
+- **No vocabulary file** — the generic classes run, the identity half does not,
+  and it says so loudly.
+- **An empty or comment-only vocabulary** — it scanned for nothing. Reporting
+  "no hits" here would be a confident all-clear having checked nothing at all.
+
+Derive it once per host, straight into that file:
 
 ```bash
+umask 077                       # the topology is not world-readable
+mkdir -p ~/.config
+{
 # host nicknames — this host, plus every host the operator has named locally.
 # The filter is not optional: see below.
 { hostname -s
@@ -32,7 +66,11 @@ command -v tailscale >/dev/null && tailscale status --json 2>/dev/null | jq -r '
 
 # home layout
 echo "$HOME"
+} | sort -u > ~/.config/topology-vocab.txt
 ```
+
+Re-run it when the fleet changes. Nothing consumes it but the script, and the
+script re-reads it on every run.
 
 ### Why the filter is not optional
 
@@ -62,7 +100,15 @@ These classes are public constants and can be matched directly:
 | CGNAT (mesh VPN) | `100\.(6[4-9]\|[7-9][0-9]\|1[01][0-9]\|12[0-7])\.` |
 | link-local | `169\.254\.` |
 | home layouts | `/home/[a-z]`, `/Users/[A-Za-z]`, `/root/` |
-| credential shapes | `github_pat_`, `ghp_`, `AKIA`, `xoxb-`, `sk-[A-Za-z0-9]{20,}`, `-----BEGIN [A-Z ]*PRIVATE KEY-----`, `user_session`, `_gh_sess` |
+| credential shapes | `github_pat_`, `ghp_`, `AKIA`, `xoxb-`, `sk-[A-Za-z0-9]{20,}`, `-----BEGIN [A-Z ]*PRIVATE KEY-----` |
+| session cookies | `user_session=`, `_gh_sess=`, `_octo=`, `sessionid=` |
+| auth headers | `Authorization:` or `Bearer` followed by 16+ token characters |
+| ssh / connection strings | `ssh user@host`, `user@host:port` |
+| internal URLs | a scheme-qualified host ending `.local`, `.lan`, `.internal`, `.home`, `.corp`, `.intranet`, or a bare unqualified host |
+
+A public URL is **not** an internal URL: `https://github.com/owner/repo` does not
+match, because the host carries a public suffix. `https://buildbox.internal/status`
+and `https://localhost:8080/` do.
 
 ## Substitutions
 

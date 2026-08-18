@@ -1,9 +1,9 @@
 ---
-name: promote-private-notes
-description: Promote a directory of private or uncommitted project notes into published, progressively-disclosed documentation. Use when asked to promote, publish, migrate or convert a project's private notes, work log, or agent state directory into committed docs — or when a brownfield repo keeps its real context in an ignored directory and it needs to become readable.
+name: promote-working-notes
+description: Promote a project's private working-notes directory into published repo documentation, behind two gates — a raw-enumeration menu the human approves before anything is written, and a topology check over the newly-authored prose before commit. Use when asked to promote, publish, migrate or convert a project's private notes, work log, or agent state directory into committed docs — or when a brownfield repo keeps its real context in an ignored directory and it needs to become readable.
 ---
 
-# Promote private notes
+# Promote working notes
 
 A directory of private project notes — a work log, a brief, an architecture file, an inbox — becomes published documentation a human would want to read. You are given the directory's path.
 
@@ -13,7 +13,13 @@ This is a **one-way, one-time** conversion per directory. It is not a sync, not 
 
 **Privacy is a property of which remote, never of whether something is committed.** An ignore line is not a privacy boundary — it is the absence of a decision. So the question is never "may this be committed?" but "which remote does this belong to?"
 
-**The per-file question is provenance, not secrecy:** *is this knowledge the project produced, or material that merely passed through it?* A work log is produced. A render fixture, a vendored binary, a captured API response passed through. A privacy scanner cannot tell those apart — the highest-severity flag in the survey that produced this skill was a deliberate test fixture. Correctly classified it is a discard by provenance, not an incident by privacy. Same outcome, and only the provenance reason generalises.
+**The sorting axis is provenance, not privacy.** For each file the question is not "is this secret?" It is:
+
+> **Is this knowledge this project produced, or material that merely passed through it?**
+
+A work log is produced. A render fixture, a vendored binary, a captured API response passed through. A privacy scanner cannot tell those apart — the highest-severity flag in the survey that produced this skill was a deliberate test fixture. Correctly classified it is a discard by provenance, not an incident by privacy. Same outcome, and only the provenance reason generalises.
+
+Consequence: a file being sensitive is not what keeps it out. Being passed-through is. Most sensitive material is passed-through anyway, so the axis subsumes the worry it replaces.
 
 ## Gate 1 — before writing anything
 
@@ -42,7 +48,7 @@ Two enumeration hazards worth knowing:
 
 ### 2. Sort by provenance, then propose the output shape
 
-Classify every root-level file, then decide what it *becomes*. Read [output-shape.md](output-shape.md) — it holds the target format and the per-source-file sort table. Most content is **delete**, and that is the expected outcome, not a failure of nerve.
+Classify every root-level file, then decide what it *becomes*. Read [references/output-shape.md](references/output-shape.md) — it holds the per-source-file mapping. The *format* of the destination documents is not this skill's job; it belongs to the repo's housekeeping skill. This skill decides **what gets promoted and into which kind of document**. If the repo has no housekeeping skill yet, say so in the menu rather than inventing a house style. Most content is **delete**, and that is the expected outcome, not a failure of nerve.
 
 ### 3. Present the menu, then stop
 
@@ -82,7 +88,11 @@ Two consequences:
 
 ### 7. Run the topology check over the new prose only
 
-A pattern scan of ~10 classes: host nicknames, DNS suffix, internal IP ranges, client identifiers. See [topology-check.md](topology-check.md) for how to derive the patterns locally and what to substitute.
+```bash
+skills/stable/promote-working-notes/scripts/topology-check.sh <new-file>...
+```
+
+A pattern scan of ~10 classes: host nicknames, DNS suffix, internal IP ranges, client identifiers. The generic classes are public constants and ship in the script; the identity half is **derived on the host** and supplied as a vocabulary file, never committed. See [references/topology-check.md](references/topology-check.md) for the derivation, the vocabulary interface and what to substitute.
 
 Note the inversion that makes this worth doing: **the same scanning that is useless on sources is useful on output.** Across the source set it was 1.32% signal — 151 hits, 2 real. On authored prose it works, because the prose is small and the leak vocabulary is finite and known.
 
