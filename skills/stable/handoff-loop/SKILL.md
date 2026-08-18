@@ -316,5 +316,4 @@ When the loop completes (or is stopped), present to user:
 | Skill | Relationship |
 |-------|-------------|
 | **subagent-strategy** | Handoff-loop DEFERS to it for spawn mechanics. Does NOT redefine model selection or agent types. |
-| **gsd-stamp** | After handoff loop completes on a remote project, consider stamping gsd-lite if work was significant |
 | **task-reconstruction** | If session forks during a handoff loop, task-reconstruction helps the new session pick up where the loop left off |
