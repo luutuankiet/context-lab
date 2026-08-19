@@ -7,7 +7,11 @@
       "Monitor",
       "NotebookEdit",
       "PushNotification",
-      "Workflow"
+      "Workflow",
+      "Artifact",
+      "ScheduleWakeup",
+      "SendUserFile",
+      "ReportFindings"
     ]
   },
   "hooks": {
@@ -57,6 +61,7 @@
   "verbose": false,
   "agentPushNotifEnabled": true,
   "tui": "fullscreen",
+    "disableBundledSkills": true,
   "extraKnownMarketplaces": {
     "context-lab": {
       "source": {
