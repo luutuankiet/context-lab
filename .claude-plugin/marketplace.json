@@ -15,6 +15,10 @@
       "source": { "source": "github", "repo": "luutuankiet/write-pr" }
     },
     {
+      "name": "learn",
+      "source": { "source": "github", "repo": "luutuankiet/learn-with-feedback-loop" }
+    },
+    {
       "name": "dbtcx",
       "source": { "source": "github", "repo": "luutuankiet/dbtcx" }
     },
