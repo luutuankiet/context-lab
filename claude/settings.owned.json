@@ -54,7 +54,7 @@
   "skipAutoPermissionPrompt": true,
   "autoScrollEnabled": true,
   "showThinkingSummaries": true,
-  "verbose": true,
+  "verbose": false,
   "agentPushNotifEnabled": true,
   "tui": "fullscreen",
   "extraKnownMarketplaces": {
