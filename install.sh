@@ -169,7 +169,8 @@ write-pr|context-lab|
 learn-with-feedback-loop|context-lab|
 dbtcx|context-lab|
 looker-mcp-shim|context-lab|
-slides-mcp|context-lab|"
+slides-mcp|context-lab|
+skills-utils|context-lab|"
 
 install_plugin() {
   step "3. marketplace plugins"

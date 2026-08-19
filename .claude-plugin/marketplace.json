@@ -29,6 +29,10 @@
     {
       "name": "slides-mcp",
       "source": { "source": "github", "repo": "luutuankiet/slides-mcp" }
+    },
+    {
+      "name": "skills-utils",
+      "source": { "source": "github", "repo": "luutuankiet/skills-utils" }
     }
   ],
   "description": "luutuankiet's personal skill collection: the stable bucket of the context-lab repo, published as one plugin."
