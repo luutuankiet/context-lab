@@ -166,6 +166,7 @@ install_rtk() {
 PLUGIN_SPECS="mattpocock-skills|claude-plugins-official|
 context-lab|context-lab|luutuankiet/context-lab
 write-pr|context-lab|
+learn-with-feedback-loop|context-lab|
 dbtcx|context-lab|
 looker-mcp-shim|context-lab|
 slides-mcp|context-lab|"
