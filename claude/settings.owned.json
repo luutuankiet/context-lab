@@ -39,7 +39,7 @@
     "command": "bash ~/.claude/statusline.sh",
     "padding": 0
   },
-  "effortLevel": "high",
+  "effortLevel": "medium",
   "outputStyle": "default",
   "enabledPlugins": {
     "mattpocock-skills@claude-plugins-official": true,
