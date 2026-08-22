@@ -111,6 +111,15 @@ for ((i=0; i<free_blocks; i++)); do bar+="░"; done
 bar_free="$bar"
 
 # ---- Render ----
+# Line 0: working directory, $HOME-relative. Older clients may not send it —
+# print nothing rather than an empty row.
+cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty')
+case "$cwd" in
+  "$HOME") cwd="~" ;;
+  "$HOME"/*) cwd="~${cwd#$HOME}" ;;
+esac
+[ -n "$cwd" ] && printf "  %s\n" "$cwd"
+
 # Line 1: model + progress bar + token summary
 printf "  ${MODEL_CLR}${BOLD}%s${RST}  " "$model"
 # printf "[${CACHE_CLR}%s${RST}${USED_CLR}%s${RST}${FREE_CLR}%s${RST}]" "$bar_cached" "$bar_io" "$bar_free"
