@@ -11,10 +11,10 @@
 #   --no-plugin  skip the marketplace plugin
 #   --no-shell   skip the shell-export block
 #
-# The whole design is symlinks, not copies. An edit made on a host writes
-# straight into the tracked file, so drift shows up as `git status` output in
-# the clone. Copies make the same edit invisible — which is exactly how joon's
-# bc->awk statusline fix went unnoticed for weeks.
+# This script registers things; it no longer places executables. Hooks and the
+# statusline reach a host as plugin content, pinned to the commit the
+# marketplace published. What is installed is therefore a name and a version,
+# never a path into somebody's working copy.
 #
 # Honours $CLAUDE_CONFIG_DIR (Claude Code does too), so the whole installer can
 # be exercised against a throwaway directory without touching the real one.
@@ -46,21 +46,14 @@ done
 
 # ---------------------------------------------------------------- manifest ---
 
-# Files symlinked from the clone into $CLAUDE_DIR, as "<repo path>|<claude path>".
-# Never a directory symlink: $CLAUDE_DIR also holds .credentials.json,
-# history.jsonl, projects/, sessions/ and 20-odd other runtime entries owned by
-# Claude Code itself. Linking the directory would put all of that in git.
-# claude/CLAUDE.md is deliberately absent: user memory is composed by @-import
-# in step 4b, not linked. Linking it made two installers compete for ownership
-# of one file, and let rtk write through the link into a tracked repo (ADR 0011).
-LINKS=(
-  "claude/statusline.sh|statusline.sh"
-  "claude/hooks/token-tracker.sh|hooks/token-tracker.sh"
-)
-
-# Keys that must be REMOVED from settings.json. A jq merge can add or change a
-# key but never delete one, so without this list a dead key survives on every
-# host forever.
+# Nothing is symlinked into $CLAUDE_DIR any more. Executables reach a host as
+# plugin content and are addressed by ${CLAUDE_PLUGIN_ROOT}, which resolves to
+# the commit-pinned cache directory -- so what runs is what the marketplace
+# published, not whatever a working copy happens to hold. See ADR 0014.
+#
+# Keys that must be REMOVED from settings.json, one per line, dotted for a
+# nested key. A jq merge can add or change a key but never delete one, so
+# without this list a dead key survives on every host forever.
 #   enabledMcpjsonServers — ["proxy"], a dangling reference to a .mcp.json
 #   server that no longer exists; the proxy is registered at account level now.
 #   agent — "gsd-lite", the retired default agent. Found live at user tier on
@@ -68,9 +61,16 @@ LINKS=(
 #   of an agent file this effort retires. It is not in sandbox-cc, so freezing
 #   that repo does not reach it. Unset rather than owned: the target state is no
 #   agent default at all, and agents are skills.
+#   hooks.UserPromptSubmit, hooks.PostToolUse — the token tracker, which now
+#   ships as a plugin hook instead. Plugin hooks MERGE with settings hooks
+#   rather than overriding them, so a host that keeps these fires the tracker
+#   twice per event. Named individually and never as a bare `hooks`: the
+#   sibling PreToolUse entry belongs to another tool and must survive.
 SETTINGS_UNSET=(
   enabledMcpjsonServers
   agent
+  hooks.UserPromptSubmit
+  hooks.PostToolUse
 )
 
 # Binaries the user tier genuinely needs.
@@ -78,8 +78,9 @@ REQUIRED_BINS=(jq awk sed git curl)
 # Wanted, but nothing here hard-fails without them.
 OPTIONAL_BINS=(flock sha256sum node gh rg)
 # Deliberately absent: bc. joon has never had it, and both consumers
-# (statusline.sh, token-tracker.sh) were moved to awk precisely so that this
-# installer never has to install a package manager's worth of dependency.
+# (the statusline contributor and token-tracker.sh) were moved to awk precisely
+# so that this installer never has to install a package manager's worth of
+# dependency.
 
 # ------------------------------------------------------------------- output ---
 
@@ -282,50 +283,6 @@ install_one_plugin() {
   fi
 }
 
-# ------------------------------------------------------- 4. symlink farm -----
-
-link_files() {
-  step "4. symlink farm -> $CLAUDE_DIR"
-
-  for spec in "${LINKS[@]}"; do
-    local src="$REPO/${spec%%|*}" dst="$CLAUDE_DIR/${spec##*|}"
-
-    if [ ! -e "$src" ]; then bad "source missing: $src"; continue; fi
-
-    # Already correct?
-    if [ -L "$dst" ] && [ "$(readlink -f -- "$dst")" = "$(readlink -f -- "$src")" ]; then
-      ok "${spec##*|} -> ${spec%%|*}"
-      continue
-    fi
-
-    # The blind spot every symlink farm has: a link quietly replaced by a real
-    # file keeps working, so nobody notices the host has stopped tracking.
-    if [ -e "$dst" ] && [ ! -L "$dst" ]; then
-      if [ "$MODE" = check ]; then bad "${spec##*|} is a regular file, not a link into the clone"; continue; fi
-      if mutating; then
-        mkdir -p "$CLAUDE_DIR/backups"
-        mv -- "$dst" "$CLAUDE_DIR/backups/$(basename -- "$dst").pre-context-lab.$STAMP"
-        warn "backed up pre-existing $(basename -- "$dst")"
-      else
-        would "back up pre-existing $dst"
-      fi
-    fi
-
-    if [ "$MODE" = check ]; then bad "${spec##*|} not linked"; continue; fi
-    if mutating; then
-      mkdir -p -- "$(dirname -- "$dst")"
-      ln -sfn -- "$src" "$dst"
-      ok "${spec##*|} -> ${spec%%|*}"
-    else
-      would "ln -sfn $src $dst"
-    fi
-  done
-
-  # No skills are linked here, and none ever will be. Skills ship as the
-  # `context-lab` plugin installed in step 3; ~/.claude/skills/ need not exist.
-  # The linker this step used to guard on was never written -- see ADR 0006.
-}
-
 # ------------------------------------------------- 4b. user memory -----------
 
 # The distinctive tail of the import line this installer owns. Any @-line ending
@@ -506,11 +463,14 @@ statusline_dispatcher() {
 # ---------------------------------------------------- 5. settings merge ------
 
 # Deep-merge the manifest over live settings, then delete the unset keys.
+# split(".") is what lets an entry name a nested key: "hooks.PostToolUse"
+# becomes the path ["hooks","PostToolUse"], leaving its siblings alone. A name
+# containing a literal dot cannot be expressed, and none needs to be.
 merged_settings() {
   local live="$1" unset_json
   unset_json=$(printf '%s\n' "${SETTINGS_UNSET[@]}" | jq -R . | jq -s .)
   jq -s --argjson unset "$unset_json" \
-    '(.[0] * .[1]) | delpaths([$unset[] | [.]])' "$live" "$MANIFEST"
+    '(.[0] * .[1]) | delpaths([$unset[] | split(".")])' "$live" "$MANIFEST"
 }
 
 merge_settings() {
@@ -571,8 +531,10 @@ merge_settings() {
     warn "no hooks.PreToolUse yet -- run \`rtk init -g --auto-patch\` to install it"
   fi
 
+  # getpath, not has(): a dotted entry names a nested key, and has() would
+  # look for one literally called "hooks.PostToolUse" and always report clean.
   for k in "${SETTINGS_UNSET[@]}"; do
-    if [ -f "$SETTINGS" ] && jq -e --arg k "$k" 'has($k)' "$SETTINGS" >/dev/null 2>&1; then
+    if [ -f "$SETTINGS" ] && jq -e --arg k "$k" 'getpath($k | split(".")) != null' "$SETTINGS" >/dev/null 2>&1; then
       [ "$MODE" = check ] && bad "$k still present" || would "delete $k"
     else
       ok "$k unset"
@@ -643,7 +605,6 @@ printf '%ssource%s     %s\n' "$DIM" "$RST" "$REPO"
 check_prereqs
 install_rtk
 install_plugin
-link_files
 memory_import
 statusline_dispatcher
 merge_settings

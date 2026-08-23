@@ -1,7 +1,7 @@
 ---
 title: The user-tier installer
 covers: how a host gets its Claude Code config, what install.sh actually writes, and what --check can and cannot prove
-verified: 2026-08-17
+verified: 2026-08-23
 ---
 
 # The user-tier installer
@@ -19,46 +19,46 @@ there. It is the only executable in this repo that touches a machine.
 Escape hatches, all valid alongside `--check`: `--no-rtk`, `--no-plugin`,
 `--no-shell`.
 
-## The design is symlinks, not copies
+## It registers things; it places no executables
 
-`install.sh` links two individual files out of the clone:
+Nothing in this repo is symlinked or copied onto a host. There is no `LINKS`
+array and no `link_files()` — both were removed in
+[ADR 0014](../adr/0014-executables-ship-as-plugin-content.md). What the
+installer writes is a registration, a memory import line, a settings merge and a
+shell block, and that is the whole list.
 
-| repo path | lands at |
+Executables reach a host as **plugin content** and are addressed by
+`${CLAUDE_PLUGIN_ROOT}`, which resolves to a cache directory keyed by the commit
+the marketplace published:
+
+| what | how it reaches a host |
 |---|---|
-| `claude/statusline.sh` | `~/.claude/statusline.sh` |
-| `claude/hooks/token-tracker.sh` | `~/.claude/hooks/token-tracker.sh` |
+| the token tracker | `hooks/hooks.json` in this plugin, bound to `UserPromptSubmit` and `PostToolUse` |
+| the statusline | `statusline.d/10-context`, discovered by the dispatcher at render time |
+| skills | `skills/stable/`, declared in `plugin.json` |
 
-The manifest is the `LINKS` array at the top of `install.sh`, written as
-`<repo path>|<claude path>`.
-
-`claude/CLAUDE.md` is **not** among them. User memory is composed by `@`-import
-instead: `~/.claude/CLAUDE.md` is a real host-local file that no repository owns,
-and step 4b adds exactly one line to it pointing at the marketplace clone
-(`~/.claude/plugins/marketplaces/context-lab/claude/CLAUDE.md`). A second tier adds
-its own line without contending for the file. See
+`claude/CLAUDE.md` is separate again: user memory is composed by `@`-import.
+`~/.claude/CLAUDE.md` is a real host-local file that no repository owns, and
+step 4b adds exactly one line to it pointing at the marketplace clone
+(`~/.claude/plugins/marketplaces/context-lab/claude/CLAUDE.md`). A second tier
+adds its own line without contending for the file. See
 [ADR 0011](../adr/0011-user-memory-composes-by-import-not-symlink.md).
 
-An edit made on a host writes straight through the link into the tracked file, so
-drift is visible as ordinary `git status` output in the clone:
+**The freshness verb is `claude plugin update`.** A `git pull` in a working
+checkout changes nothing about what a host executes, which is the point: what
+runs is a published version, not whatever a working copy happens to hold.
 
-```sh
-git -C <clone> fetch -q && git -C <clone> status --porcelain=v1 -b
-```
+**Plugin hooks merge with settings hooks; they do not override them.** A host
+that gains the plugin hook while keeping the old `settings.json` entry fires the
+tracker twice per event, silently. That is why `hooks.UserPromptSubmit` and
+`hooks.PostToolUse` are in `SETTINGS_UNSET` — see step 5.
 
-Copies make the same edit invisible instead. That is not hypothetical — a
-statusline fix hand-applied on one host went unnoticed on another for weeks, and a
-copy-based re-install would have silently reverted it.
-
-**Never a directory symlink.** `~/.claude/` also holds `.credentials.json`,
-`history.jsonl`, `projects/`, `sessions/` and twenty-odd other runtime entries that
-Claude Code itself owns. Linking the directory would put all of that in git.
-
-## Six steps, in order
+## The steps, in order
 
 **1. Prerequisites.** Hard requirements are `jq awk sed git curl`. Wanted but never
 fatal: `flock sha256sum node gh rg`. `bc` is *deliberately* absent from both lists —
-one host in the fleet has never had it, and both consumers (`statusline.sh`,
-`token-tracker.sh`) were moved to `awk` precisely so this installer never has to
+one host in the fleet has never had it, and both consumers (the statusline
+contributor, `token-tracker.sh`) were moved to `awk` precisely so this never has to
 reach for a package manager. Re-introducing a `bc` dependency anywhere breaks that
 host silently: the statusline fails per render and nothing prints an error.
 
@@ -84,17 +84,25 @@ read` runs in a subshell, and every `bad()` inside it would increment a `FAILURE
 that dies with that subshell — leaving `--check` exiting 0 on a host with no
 plugins at all.
 
-**4. Symlink farm.** The three links above, and nothing else. Skills are not
-linked and never will be: they arrive as the plugin from step 3.
+**4. Nothing.** This step used to be a symlink farm. It was removed; the numbers
+below are unchanged so that step 5 and step 6 keep the names they have
+everywhere else.
 
 **5. Settings merge — key-level, never file replacement.**
 
 ```sh
-jq -s '(.[0] * .[1]) | delpaths([$unset[] | [.]])' <live> claude/settings.owned.json
+jq -s '(.[0] * .[1]) | delpaths([$unset[] | split(".")])' <live> claude/settings.owned.json
 ```
 
-Sixteen owned keys; everything else on the host is left alone. Two properties are
-load-bearing:
+Nineteen owned keys; everything else on the host is left alone. `split(".")` is
+what lets `SETTINGS_UNSET` name a **nested** key: the entry
+`hooks.PostToolUse` becomes the path `["hooks","PostToolUse"]`. The earlier
+one-element form could only ever delete a top-level key, which is why the
+retired hook bindings survived on every host. Entries are named individually
+and never as a bare `hooks` — the `PreToolUse` entry beside them belongs to
+another tool.
+
+Two further properties are load-bearing:
 
 - The merge writes to a temp file and `mv`s it, so an interrupted install can never
   leave a truncated `settings.json` behind.
@@ -118,15 +126,17 @@ someone's login shell behind their back is not worth the tidiness.
 
 ## What `--check` proves, and what it does not
 
-It proves: every prerequisite is present, every link still resolves into the clone,
-every owned key still matches, every unset key is still absent, and the shell
-exports are set.
+It proves: every prerequisite is present, the memory import resolves, the
+dispatcher is in place, every owned key still matches, every unset key is still
+absent, and the shell exports are set.
 
-It does **not** prove the clone is the right clone. `--check` compares the host
-against whatever is checked out, so a clone sitting on a stale commit or a feature
-branch passes cleanly while the host runs something other than `main`. That failure
-has been observed and is written up in
-`docs/traps/CHECK_PASSES_ON_A_STALE_CLONE.md`.
+It does **not** prove the host is running the version you think it is. `--check`
+compares the host against whatever `install.sh` was invoked from, so a checkout
+sitting on a stale commit or a feature branch passes cleanly while the host's
+plugin cache holds something else entirely. That failure has been observed and
+is written up in `docs/traps/CHECK_PASSES_ON_A_STALE_CLONE.md`. Establishing
+that a host matches its published intent is the audit skill's job, not
+`--check`'s.
 
 ## Two steps cannot be sandbox-tested
 
