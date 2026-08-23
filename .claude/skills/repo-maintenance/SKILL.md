@@ -59,6 +59,7 @@ it with a new one rather than editing it.
 - [A tool's manual lives in the tool's repo, and the catalogue only points](../../../docs/adr/0009-a-tools-manual-lives-in-the-tools-repo.md)
 - [The catalogue has been swept for manuals once, and holds none](../../../docs/adr/0010-the-catalogue-has-been-swept-for-manuals-once.md)
 - [User memory composes by `@`-import, never by symlink](../../../docs/adr/0011-user-memory-composes-by-import-not-symlink.md)
+- [The statusline is composed by a host-owned dispatcher, not owned by this repo](../../../docs/adr/0012-the-statusline-is-composed-not-owned.md)
 
 <!-- END GENERATED INDEX -->
 
