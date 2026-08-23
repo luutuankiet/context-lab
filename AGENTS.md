@@ -10,8 +10,13 @@ host this operator works on. Bash and markdown; no build, no runtime.
   twice before editing either.
 - **What this repo emits into another repo carries no brand.** A repo laid out this
   way reads as ordinary good housekeeping, not a methodology to learn first.
-- **Never a directory symlink into `~/.claude/`** — it holds `.credentials.json`,
-  `history.jsonl` and twenty-odd runtime entries Claude Code owns. Link named files.
+- **Nothing is symlinked or copied into `~/.claude/`.** Executables ship as plugin
+  content and are addressed by `${CLAUDE_PLUGIN_ROOT}`, so what runs is a published
+  commit rather than a working copy. `install.sh` registers; it places nothing
+  (ADR 0014).
+- **A plugin hook merges with a settings hook, it does not override it.** Adding a
+  binding to `hooks/hooks.json` without deleting the matching `settings.json` entry
+  makes it fire twice per event, silently. The two edits are one commit.
 - **Key material is blocked by pattern, not path**, and an ignore line is inert
   against a file already tracked at HEAD. The repair is `git rm --cached`.
 - **Write bash for the oldest interpreter in the fleet, 3.2**, under `set -euo
@@ -29,6 +34,7 @@ claude/        the payload installed onto every host      install.sh the distrib
 skills/        stable | in-progress | deprecated          scripts/   repo tooling
 docs/          prose, indexed in docs/README.md           .claude/   the two index skills
 statusline.d/  this repo's statusline contributors        tests/     the dispatcher's own suite
+hooks/hooks.json  plugin hook bindings — discovered by filename, no manifest key
 ```
 
 Only `skills/stable/` installs, enforced by `"skills": ["./skills/stable"]` in

@@ -95,9 +95,26 @@ fi
 # Parallel tool calls fire PostToolUse concurrently; without this the
 # read-modify-write of the cumulative watermark could double-count. Best effort:
 # if the lock cannot be taken quickly we proceed anyway rather than time out.
-if command -v flock >/dev/null 2>&1; then
-  exec 9>"$LOCK_FILE" 2>/dev/null || true
-  flock -w 2 9 2>/dev/null || true
+#
+# mkdir, not flock. mkdir is atomic on every filesystem and is a shell builtin
+# path on every host; flock is a Linux util-linux binary that macOS does not
+# ship, so the old `command -v flock` guard silently left the fleet's macOS
+# clients with no lock at all -- and no error to notice.
+LOCK_DIR="${LOCK_FILE}.d"
+lock_held=0
+i=0
+while [ "$i" -lt 20 ]; do
+  if mkdir "$LOCK_DIR" 2>/dev/null; then lock_held=1; break; fi
+  # A lock older than 30s belongs to an invocation that died before releasing.
+  if [ -d "$LOCK_DIR" ]; then
+    stale=$(find "$LOCK_DIR" -maxdepth 0 -mmin +0.5 2>/dev/null || true)
+    [ -n "$stale" ] && rmdir "$LOCK_DIR" 2>/dev/null || true
+  fi
+  i=$((i + 1))
+  sleep 0.1
+done
+if [ "$lock_held" -eq 1 ]; then
+  trap 'rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
 fi
 
 total_lines=$(wc -l < "$transcript_path" 2>/dev/null || echo 0)

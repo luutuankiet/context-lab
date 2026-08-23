@@ -1,16 +1,22 @@
 ---
 symptom: "a host works fine but edits I make in the clone never reach it any more"
 area: user-tier installer
-verified: 2026-08-17
+verified: 2026-08-23
 ---
 
 # A link replaced by a real file keeps working
 
+**This trap is historical.** Nothing is symlinked onto a host any more —
+[ADR 0014](../adr/0014-executables-ship-as-plugin-content.md) removed the last
+two links. The page is kept because the filename is quoted elsewhere, because
+leftover links are still on hosts that have not been cut over, and because the
+general rule at the bottom is the reason the trap is worth remembering at all.
+
 ## Symptom
 
-You change `claude/statusline.sh` in the clone, commit, and the host does not
-change. Nothing errors. The statusline still renders — it renders the *old* thing.
-The host has silently stopped tracking the repo.
+You change a file in the clone, commit, and the host does not change. Nothing
+errors. It still renders — it renders the *old* thing. The host has silently
+stopped tracking the repo.
 
 ## Mechanism
 
@@ -27,37 +33,43 @@ The path still exists. Its contents are still valid. Every consumer keeps workin
 The only thing that broke is the property nobody checks: that this file is a
 *view* of the clone rather than a copy of it.
 
-Copies are exactly what this design exists to avoid. Drift in a symlinked file
-shows up as `git status` output; drift in a copy shows up as nothing at all until
-somebody notices the two machines behave differently.
+## Why it stopped being a trap
 
-## Fix
+The link was standing in for "what runs is what the repo published", and it was a
+poor proxy: it resolved to whatever commit a working checkout happened to sit on,
+which on most hosts was not the published one. Executables now reach a host as
+plugin content addressed by `${CLAUDE_PLUGIN_ROOT}`, which resolves to a cache
+directory keyed by the published commit. There is no path to replace and no link
+to break.
 
-`install.sh` detects it and refuses to be quiet about it:
+## Fix, on a host not yet cut over
 
-- Under `--check` it fails with
-  `<file> is a regular file, not a link into the clone`.
-- Under a real install it moves the file aside to
-  `~/.claude/backups/<name>.pre-context-lab.<timestamp>` before relinking, so a
-  hand-made change is preserved rather than destroyed.
+`install.sh` no longer creates, checks or repairs these links, so it will not
+report them. Delete them by hand and re-install:
 
-So the repair is `./install.sh`, and then read the backup to see what you had.
+```sh
+rm -f ~/.claude/statusline.sh ~/.claude/hooks/token-tracker.sh
+rmdir ~/.claude/hooks 2>/dev/null   # only if rtk left nothing else there
+```
 
-## How to verify
+The audit skill names any that remain; that is where this check lives now.
+
+## How to verify nothing is left
 
 ```sh
 for f in statusline.sh hooks/token-tracker.sh; do
-  printf '%-26s %s\n' "$f" "$([ -L ~/.claude/"$f" ] && readlink -f ~/.claude/"$f" || echo 'NOT A LINK')"
+  printf '%-26s %s\n' "$f" "$([ -e ~/.claude/"$f" ] && echo 'STILL PRESENT' || echo 'clean')"
 done
 ```
 
 `CLAUDE.md` is deliberately absent from that list: it is a real host-local file
-composed by `@`-import, not a link, so `NOT A LINK` is the correct state for it
-(ADR 0011). Every line above must resolve into the clone. `[ -e ]` is not enough — that is the test
-that passes for both shapes and is why the problem hides.
+composed by `@`-import, and it is *supposed* to exist (ADR 0011).
 
 ## The general rule
 
 **Test for the mechanism, not the outcome.** "The file is there and the content is
-right" is true in both the working and the broken state. `[ -L ]` is the assertion
-that distinguishes them, and any check that omits it is measuring the wrong thing.
+right" is true in both the working and the broken state. `[ -L ]` was the
+assertion that distinguished them, and any check that omitted it was measuring
+the wrong thing. The same rule is what caught the successor problem: a plugin
+hook and a settings hook with the same command both run, and "the tracker fires"
+is true in both the working and the double-counting state.

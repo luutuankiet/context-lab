@@ -22,7 +22,7 @@ something is implemented.
 |---|---|---|
 | [How this repo holds its own context](../../../docs/architecture/repo-context-layout.md) | where agent-facing context lives in this repo, what is always loaded, and how the generated index stays honest | 2026-08-18 |
 | [The skills collection](../../../docs/architecture/skills-collection.md) | where the distributed skills live, how the stable bucket ships as a plugin, and why no third-party skill is vendored here | 2026-08-18 |
-| [The user-tier installer](../../../docs/architecture/user-tier-installer.md) | how a host gets its Claude Code config, what install.sh actually writes, and what --check can and cannot prove | 2026-08-17 |
+| [The user-tier installer](../../../docs/architecture/user-tier-installer.md) | how a host gets its Claude Code config, what install.sh actually writes, and what --check can and cannot prove | 2026-08-23 |
 
 ## Guides
 

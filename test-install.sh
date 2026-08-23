@@ -25,11 +25,18 @@ fresh() {
   # enabledMcpjsonServers and agent keys are present, and there is a host-local pref
   # (spinnerTipsEnabled) that we do not own and must not touch. Do not use
   # `verbose` as that canary -- it is owned now.
+  #
+  # PostToolUse is the legacy token-tracker binding, seeded deliberately: it is
+  # what a real host looks like before this install, and the whole point of the
+  # nested unset is that it goes while PreToolUse beside it stays.
   printf '%s\n' \
     '{' \
     '  "enabledMcpjsonServers": ["proxy"],' \
     '  "agent": "gsd-lite",' \
-    '  "hooks": { "PreToolUse": [ { "matcher": "Bash", "hooks": [ { "type": "command", "command": "/rtk/hook.sh" } ] } ] },' \
+    '  "hooks": {' \
+    '    "PreToolUse": [ { "matcher": "Bash", "hooks": [ { "type": "command", "command": "/rtk/hook.sh" } ] } ],' \
+    '    "PostToolUse": [ { "hooks": [ { "type": "command", "command": "bash ~/.claude/hooks/token-tracker.sh PostToolUse" } ] } ]' \
+    '  },' \
     '  "spinnerTipsEnabled": false,' \
     '  "effortLevel": "low"' \
     '}' > "$CLAUDE_CONFIG_DIR/settings.json"
@@ -59,15 +66,20 @@ assert "CLAUDE.md is a real file, not a link" "file" \
 assert "CLAUDE.md imports the marketplace memory block exactly once" "1" \
   "$(awk '/^@.*\/plugins\/marketplaces\/context-lab\/claude\/CLAUDE\.md$/ { n++ } END { print n+0 }' \
      "$CLAUDE_CONFIG_DIR/CLAUDE.md")"
-assert "token-tracker.sh is a symlink" "link" "$([ -L "$CLAUDE_CONFIG_DIR/hooks/token-tracker.sh" ] && echo link || echo no)"
+assert "nothing is symlinked into the config dir any more" "absent" \
+  "$([ -e "$CLAUDE_CONFIG_DIR/hooks/token-tracker.sh" ] || [ -e "$CLAUDE_CONFIG_DIR/statusline.sh" ] && echo present || echo absent)"
 assert "dead enabledMcpjsonServers key removed" "false" \
   "$(jq -r 'has("enabledMcpjsonServers")' "$CLAUDE_CONFIG_DIR/settings.json")"
 assert "retired agent default removed" "false" \
   "$(jq -r 'has("agent")' "$CLAUDE_CONFIG_DIR/settings.json")"
 assert "rtk's PreToolUse hook survived" "/rtk/hook.sh" \
   "$(jq -r '.hooks.PreToolUse[0].hooks[0].command' "$CLAUDE_CONFIG_DIR/settings.json")"
-assert "our UserPromptSubmit hook installed" "1" \
-  "$(jq -r '.hooks.UserPromptSubmit | length' "$CLAUDE_CONFIG_DIR/settings.json")"
+# The nested unset. These two now ship as plugin hooks; left in settings they
+# would merge with the plugin's copy and fire the tracker twice per event.
+assert "legacy PostToolUse hook removed from settings" "null" \
+  "$(jq -r '.hooks.PostToolUse // "null"' "$CLAUDE_CONFIG_DIR/settings.json")"
+assert "no UserPromptSubmit hook in settings" "null" \
+  "$(jq -r '.hooks.UserPromptSubmit // "null"' "$CLAUDE_CONFIG_DIR/settings.json")"
 assert "owned key overwritten (effortLevel low -> medium)" "medium" \
   "$(jq -r '.effortLevel' "$CLAUDE_CONFIG_DIR/settings.json")"
 assert "unowned host-local key preserved (spinnerTipsEnabled)" "false" \
@@ -88,13 +100,25 @@ assert "settings.json unchanged by re-install" "$snap" "$(jq -S . "$CLAUDE_CONFI
 assert "zshrc not duplicated by re-install" "$rc_snap" "$(cat "$HOME/.zshrc")"
 run --check >/dev/null 2>&1; assert "--check still passes" "0" "$?"
 
-banner "7. drift: a link replaced by a real file"
-rm -f "$CLAUDE_CONFIG_DIR/statusline.sh"; echo 'echo hi' > "$CLAUDE_CONFIG_DIR/statusline.sh"
-run --check >/dev/null 2>&1; assert "--check catches the un-linked file" "1" "$?"
+banner "7. drift: the legacy hook comes back"
+# A host that re-runs an old installer, or hand-restores a backup, gets the
+# settings binding again. --check must see it, and install must take it out
+# without touching the PreToolUse entry sitting next to it.
+tmp=$(mktemp)
+jq '.hooks.UserPromptSubmit = [ { "hooks": [ { "type": "command", "command": "bash ~/.claude/hooks/token-tracker.sh UserPromptSubmit" } ] } ]' \
+  "$CLAUDE_CONFIG_DIR/settings.json" > "$tmp"; mv "$tmp" "$CLAUDE_CONFIG_DIR/settings.json"
+run --check >/dev/null 2>&1; assert "--check catches the resurrected hook" "1" "$?"
 run >/dev/null 2>&1
-assert "install re-links it" "link" "$([ -L "$CLAUDE_CONFIG_DIR/statusline.sh" ] && echo link || echo no)"
-assert "and backed the stray file up" "1" \
-  "$(find "$CLAUDE_CONFIG_DIR/backups" -name 'statusline.sh.pre-context-lab.*' | wc -l | tr -d ' ')"
+assert "install removes it again" "null" \
+  "$(jq -r '.hooks.UserPromptSubmit // "null"' "$CLAUDE_CONFIG_DIR/settings.json")"
+assert "rtk's PreToolUse hook still survived" "/rtk/hook.sh" \
+  "$(jq -r '.hooks.PreToolUse[0].hooks[0].command' "$CLAUDE_CONFIG_DIR/settings.json")"
+
+banner "7b. the plugin hooks manifest"
+assert "hooks/hooks.json is valid JSON" "0" \
+  "$(jq -e . "$REPO/hooks/hooks.json" >/dev/null 2>&1; echo $?)"
+assert "both events bound to the plugin-root path" "2" \
+  "$(grep -c 'CLAUDE_PLUGIN_ROOT.*token-tracker\.sh' "$REPO/hooks/hooks.json")"
 
 banner "8. drift: an owned key hand-edited"
 tmp=$(mktemp); jq '.effortLevel = "low"' "$CLAUDE_CONFIG_DIR/settings.json" > "$tmp"; mv "$tmp" "$CLAUDE_CONFIG_DIR/settings.json"
@@ -108,7 +132,7 @@ assert "malformed file left untouched" "{ this is not json" "$(cat "$CLAUDE_CONF
 banner "10. a genuinely fresh host (no settings.json at all)"
 fresh; rm -f "$CLAUDE_CONFIG_DIR/settings.json"
 run >/dev/null 2>&1; assert "install exits 0 with no prior settings" "0" "$?"
-assert "manifest keys all present" "20" "$(jq -r 'keys | length' "$REPO/claude/settings.owned.json")"
+assert "manifest keys all present" "19" "$(jq -r 'keys | length' "$REPO/claude/settings.owned.json")"
 run --check >/dev/null 2>&1; assert "--check passes on the fresh host" "0" "$?"
 
 banner "10b. the statusline dispatcher"
@@ -153,8 +177,8 @@ assert "--check names a host with no dispatcher" "0" "$(saw "$OUT" "dispatcher a
 
 banner "11. the shipped scripts actually run"
 printf '%s' '{"model":{"display_name":"Claude Opus 5"},"context_window":{"used_percentage":42,"context_window_size":1000000,"total_input_tokens":1200,"total_output_tokens":340,"current_usage":{"cache_read_input_tokens":900,"input_tokens":100,"cache_creation_input_tokens":200,"output_tokens":40}}}' \
-  | bash "$REPO/claude/statusline.sh" >/dev/null 2>&1
-assert "statusline.sh runs without bc" "0" "$?"
+  | bash "$REPO/statusline.d/10-context" >/dev/null 2>&1
+assert "the statusline contributor runs without bc" "0" "$?"
 printf '%s' '{}' | bash "$REPO/claude/hooks/token-tracker.sh" PostToolUse >/dev/null 2>&1
 assert "token-tracker.sh no-ops on an empty payload" "0" "$?"
 

@@ -29,7 +29,7 @@ crashing.
 | a path built from $CLAUDE_PLUGIN_ROOT inside a skill resolves to /skills/... and the command fails as if the file were missing | [CLAUDE_PLUGIN_ROOT_IS_EMPTY_IN_BASH](../../../docs/traps/CLAUDE_PLUGIN_ROOT_IS_EMPTY_IN_BASH.md) | skills collection | 2026-08-18 |
 | a shell script in this repo aborts with unbound variable on one machine only, and runs fine everywhere else | [EMPTY_ARRAY_IS_FATAL_UNDER_SET_U](../../../docs/traps/EMPTY_ARRAY_IS_FATAL_UNDER_SET_U.md) | shell scripts | 2026-08-17 |
 | install.sh prints `ok <plugin> installed`, the session has none of that plugin's skills, and `claude plugin list` does not show it | [INSTALLER_REPORTS_A_PLUGIN_IT_NEVER_INSTALLED](../../../docs/traps/INSTALLER_REPORTS_A_PLUGIN_IT_NEVER_INSTALLED.md) | user-tier installer | 2026-08-18 |
-| a host works fine but edits I make in the clone never reach it any more | [LINK_REPLACED_BY_A_REAL_FILE](../../../docs/traps/LINK_REPLACED_BY_A_REAL_FILE.md) | user-tier installer | 2026-08-17 |
+| a host works fine but edits I make in the clone never reach it any more | [LINK_REPLACED_BY_A_REAL_FILE](../../../docs/traps/LINK_REPLACED_BY_A_REAL_FILE.md) | user-tier installer | 2026-08-23 |
 | the agent ignores fleet-wide rules on one host and nothing anywhere reports a problem | [MEMORY_IMPORT_RESOLVES_TO_NOTHING](../../../docs/traps/MEMORY_IMPORT_RESOLVES_TO_NOTHING.md) | user-tier installer | 2026-08-18 |
 | a hook that another tool installed stopped firing after I ran install.sh, and settings.json looks fine | [PRETOOLUSE_HOOK_GONE_AFTER_INSTALL](../../../docs/traps/PRETOOLUSE_HOOK_GONE_AFTER_INSTALL.md) | user-tier installer | 2026-08-17 |
 | git status in the context-lab clone shows claude/CLAUDE.md modified on a host I only just installed, and I did not edit it | [RTK_IMPORT_APPENDED_TWICE](../../../docs/traps/RTK_IMPORT_APPENDED_TWICE.md) | user-tier installer | 2026-08-18 |
@@ -41,7 +41,7 @@ Simply true, and expensive to re-derive.
 | page | summary | verified |
 |---|---|---|
 | [What the host audit checks, and what it cannot see](../../../docs/reference/host-audit-coverage.md) | the eleven things context-lab-audit compares against remote HEAD, the two classes it sorts drift into, the three states it deliberately reports as facts rather than failures, and the four blind spots that are structural rather than unfinished | 2026-08-23 |
-| [The owned settings keys](../../../docs/reference/owned-settings-keys.md) | which nineteen keys install.sh takes over, which are deliberately left to the host, and which are actively deleted | 2026-08-18 |
+| [The owned settings keys](../../../docs/reference/owned-settings-keys.md) | which nineteen keys install.sh takes over, which are deliberately left to the host, and which are actively deleted | 2026-08-23 |
 | [The life of a skill](../../../docs/reference/skill-lifecycle.md) | the three buckets and which one is served, where drafting happens, and what changes for a consumer when a skill is promoted out to the tool's own repo | 2026-08-18 |
 
 ## Decisions
@@ -62,6 +62,7 @@ it with a new one rather than editing it.
 - [User memory composes by `@`-import, never by symlink](../../../docs/adr/0011-user-memory-composes-by-import-not-symlink.md)
 - [The statusline is composed by a host-owned dispatcher, not owned by this repo](../../../docs/adr/0012-the-statusline-is-composed-not-owned.md)
 - [Dev mode is absent from the architecture, not blocked in it](../../../docs/adr/0013-dev-mode-is-absent-not-blocked.md)
+- [Executables ship as plugin content, not as symlinks into a clone](../../../docs/adr/0014-executables-ship-as-plugin-content.md)
 
 <!-- END GENERATED INDEX -->
 

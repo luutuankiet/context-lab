@@ -1,7 +1,7 @@
 ---
 title: The owned settings keys
 summary: which nineteen keys install.sh takes over, which are deliberately left to the host, and which are actively deleted
-verified: 2026-08-18
+verified: 2026-08-23
 ---
 
 # The owned settings keys
@@ -18,8 +18,7 @@ re-derive is *why each key is owned*, and that is what this page holds.
 | key | why it is fleet-wide |
 |---|---|
 | `permissions` | `defaultMode: bypassPermissions` plus a six-entry deny list. The deny list is a **noise filter, not a sandbox** — it mutes tool surfaces that are not wanted, and it must never be confused with the blocked-tool list an earlier setup used to force filesystem work through a proxy. |
-| `hooks` | Only `UserPromptSubmit` and `PostToolUse`, both pointing at `token-tracker.sh`. Naming a third event is dangerous — see `docs/traps/PRETOOLUSE_HOOK_GONE_AFTER_INSTALL.md`. |
-| `statusLine` | The shared statusline, one tracked script for the whole fleet. |
+| `statusLine` | Names the host-owned dispatcher, which composes contributors from every enabled marketplace. Not a script this repo owns — see [ADR 0012](../adr/0012-the-statusline-is-composed-not-owned.md). |
 | `effortLevel` | A working preference that should not vary by which machine you sat down at. |
 | `outputStyle` | Same. |
 | `enabledPlugins` | Flips the upstream skills plugin on. It only flips a switch — the plugin still has to be *installed*, which is `install.sh` step 3. |
@@ -35,6 +34,7 @@ re-derive is *why each key is owned*, and that is what this page holds.
 | `tui` | `fullscreen`. |
 | `showThinkingSummaries` | On. Thinking is hidden in an interactive session unless this is set, and `Ctrl+O` transcript mode — the manual alternative — cannot be configured fleet-wide, which is the whole reason this is owned rather than left to the host. |
 | `verbose` | On. With `showThinkingSummaries`, this is what makes thinking render in full in the main view instead of a collapsed one-liner. **It was previously host-local**; it moved because the pair only works together, and half the pair is not worth owning. It changes more than thinking output — that was accepted knowingly. |
+| `disableBundledSkills` | On. The bundled set overlaps this catalogue, and two skills answering to one name is a coin toss over which one a session loads. |
 | `extraKnownMarketplaces` | Registers this repo's own marketplace, so the plugin `enabledPlugins` flips on is resolvable. Only the public marketplace can live here: a private one names a repository a public consumer cannot fetch, and their install would fail. |
 
 **`bypassPermissions` is fleet-wide, and the consequence is stated rather than
@@ -61,12 +61,20 @@ thinking-output pair, and owning only the first half renders nothing.
 
 A `jq` merge can add or change a key but **can never remove one**, so a key that
 should die needs an explicit removal list or it survives on every host forever.
-`install.sh` carries that list as `SETTINGS_UNSET`.
+`install.sh` carries that list as `SETTINGS_UNSET`. An entry may be **dotted** to
+name a nested key: the merge splits on `.`, so `hooks.PostToolUse` deletes that
+one event and leaves its siblings alone. The earlier form wrapped each entry in
+a one-element path and could only ever reach a top-level key.
 
 | key | why it is deleted |
 |---|---|
 | `enabledMcpjsonServers` | Was `["proxy"]` — a dangling reference to a `.mcp.json` server that no longer exists. The MCP proxy is registered at the account level now, so a checkout needs no MCP config at all. |
 | `agent` | Pinned a default agent file at user tier. On at least one host it resolved to a fork sitting in no git repo, so no amount of tidying a *repo* would ever have reached it. |
+| `hooks.UserPromptSubmit` | The token tracker, which now ships as a plugin hook. Plugin hooks **merge with** settings hooks rather than overriding them, so a host keeping this fires the tracker twice per event and nothing reports an error. |
+| `hooks.PostToolUse` | Same binding, same reason. |
+
+Never add a bare `hooks` to this list. `hooks.PreToolUse` belongs to another
+tool and would go with it — see `docs/traps/PRETOOLUSE_HOOK_GONE_AFTER_INSTALL.md`.
 
 ## Unowned keys are silent divergence
 
