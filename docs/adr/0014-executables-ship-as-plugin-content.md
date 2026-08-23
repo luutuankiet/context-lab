@@ -73,4 +73,34 @@ legacy binding and asserts exactly that.
   audit's job, not an install's; the audit skill names them and proposes the
   removal.
 - **`claude/statusline.sh` is gone**, and with it the compatibility path for a
-  host that has not yet been repointed at the dispatcher. Every host has been.
+  host still pointing at the shim. At the time of writing that is **every**
+  host — see below. A host is therefore briefly without a statusline between
+  the moment its plugin cache advances and the moment `install.sh` finishes.
+  One install run closes that window, because the dispatcher is written in step
+  4 and `statusLine` is repointed at it in step 5.
+
+## The state this was decided against
+
+Measured across the fleet on 2026-08-23, before any of this shipped. It is
+worth recording because it inverts the assumption the earlier design rested on
+— that the dispatcher was live and the shim was legacy:
+
+| host | dispatcher present | `statusLine` names | contributors visible |
+|---|---|---|---|
+| macOS client | no | the shim, through a link | 0 |
+| home server | no | `~/.claude/statusline.sh` | 0 |
+| personal devcontainer | no | `~/.claude/statusline.sh` | 2 |
+| work devcontainer | no | `~/.claude/statusline.sh` | 0 |
+
+**No host has ever rendered a composed statusline.** The dispatcher of ADR 0012
+was written, committed and never delivered; three of the four hosts also had
+marketplace clones too old to contain a `statusline.d/` directory at all, so
+even a dispatcher would have found nothing to run. The one host whose clone was
+current had both contributors sitting on disk, unread.
+
+That is the substantive reason this record exists. The links were not the
+problem by themselves — the problem is that a host's behaviour was pinned to
+whatever a working checkout happened to hold, and nothing in the design made
+the gap between "committed" and "running" visible. `${CLAUDE_PLUGIN_ROOT}` plus
+an audit that reads the published remote as intent is the answer to that, and
+the symlink removal is what it costs.

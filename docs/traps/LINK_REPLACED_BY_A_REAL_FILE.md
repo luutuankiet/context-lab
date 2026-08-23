@@ -6,7 +6,8 @@ verified: 2026-08-23
 
 # A link replaced by a real file keeps working
 
-**This trap is historical.** Nothing is symlinked onto a host any more —
+**This trap is historical, and it hid a larger one.** Nothing is symlinked onto
+a host any more —
 [ADR 0014](../adr/0014-executables-ship-as-plugin-content.md) removed the last
 two links. The page is kept because the filename is quoted elsewhere, because
 leftover links are still on hosts that have not been cut over, and because the
@@ -32,6 +33,19 @@ symlink into the clone. Something replaced it with a regular file:
 The path still exists. Its contents are still valid. Every consumer keeps working.
 The only thing that broke is the property nobody checks: that this file is a
 *view* of the clone rather than a copy of it.
+
+## The larger trap underneath it
+
+This page asks whether a path is a link or a copy. Both answers can be right
+while the host still runs nothing you wrote. Measured across four hosts in
+August 2026: the statusline dispatcher was committed, documented and present in
+**none** of them, every host's `statusLine` still named the shim, and three of
+the four had marketplace clones too old to contain a `statusline.d/` directory
+at all. Every link was intact. Every check that looked at links passed.
+
+The question that would have caught it is not "is this a link" but "does what
+this host executes match what the remote publishes". That is a different
+question, it needs the remote to answer, and it is what the audit skill asks.
 
 ## Why it stopped being a trap
 
