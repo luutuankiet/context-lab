@@ -42,19 +42,50 @@ an unresolved `@`-import produces no error. `--check` warns when the target is
 missing; it is the only thing that will tell you.
 
 Developing on it instead? Clone it anywhere you like and run that clone's
-`install.sh`; only the two linked config files follow the clone, while user memory
-always imports from the marketplace copy.
+`install.sh`. **Nothing follows the clone.** Hooks, skills and the statusline
+contributor reach a host as plugin content addressed by `${CLAUDE_PLUGIN_ROOT}`,
+so what runs is always the commit the marketplace published — never your working
+copy. Editing a file here changes nothing on any host until you push and re-run
+`marketplace update` ([ADR 0014](docs/adr/0014-executables-ship-as-plugin-content.md)).
 
 ## What is in here
 
-| tree | role | who reads it |
+| tree | role | how it reaches a host |
 |---|---|---|
-| `claude/` | the **payload** — user-tier config installed into `~/.claude/` | every host, via `install.sh` |
-| `skills/` | the **distributed** skills collection — `stable/` ships as the `context-lab` plugin | every host, via `install.sh` |
-| `install.sh` | the distributor — links config, installs plugins | you, once per host |
+| `claude/` | the **payload** — settings keys, the memory import, the hook script, the statusline dispatcher | mostly as plugin content; only the dispatcher is written to `~/.claude/` |
+| `skills/` | the **distributed** skills collection — only `stable/` ships | as plugin content, enforced by `"skills": ["./skills/stable"]` |
+| `statusline.d/` | this repo's statusline contributors — one executable per segment | discovered every render; no registration |
+| `hooks/hooks.json` | the plugin's hook bindings | discovered by filename; no manifest key names it |
+| `install.sh` | the distributor — registers plugins, merges owned settings keys, appends the memory import and the shell block | you, once per host |
 | `.claude-plugin/` | the marketplace and plugin manifests | Claude Code, on install |
+| `scripts/`, `tests/` | repo tooling and the dispatcher's own suite | nobody — never leaves this repo |
 | `docs/` | the lab's own writing | humans, and agents on demand |
 | `AGENTS.md`, `CLAUDE.md`, `.claude/` | **this repo's own** harness config | agents working *on* Context Lab |
+
+## The marketplace publishes more than this repo
+
+`marketplace add` gives you a catalogue of seven plugins, not one. `context-lab`
+is this repository; the other six are separate public repositories the manifest
+points at, so each is installed and updated on its own:
+
+```sh
+claude plugin install <name>@context-lab
+```
+
+| plugin | source |
+|---|---|
+| `context-lab` | this repository |
+| `write-pr` | `luutuankiet/write-pr` |
+| `learn-with-feedback-loop` | `luutuankiet/learn-with-feedback-loop` |
+| `dbtcx` | `luutuankiet/dbtcx` |
+| `looker-mcp-shim` | `luutuankiet/looker-mcp-shim` |
+| `slides-mcp` | `luutuankiet/slides-mcp` |
+| `skills-utils` | `luutuankiet/skills-utils` |
+
+Installing one does not install the rest. `install.sh` registers the whole set
+from a list it holds itself, which is why re-running it is how a host picks up a
+newly published plugin — and why adding one to the marketplace manifest is only
+half the change.
 
 ## The one structural requirement
 

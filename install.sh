@@ -144,21 +144,21 @@ install_rtk() {
 
 # ------------------------------------------------------------- 3. plugin -----
 
-# Four plugins, one mechanism. The upstream one hydrates third-party skills onto
+# Eight plugins, one mechanism. The upstream one hydrates third-party skills onto
 # the host (docs/third-party-skills.md records which upstream, at which sha,
 # under which licence -- scripts/third-party-gate.sh asserts that id and that
 # file agree). The second is this repo: skills/stable/ ships as the `context-lab`
 # plugin out of a marketplace whose source is the *GitHub repo* -- so a host needs
 # no clone, the marketplace serves the default branch, and `claude plugin update`
 # is the real update verb (ADR 0008, superseding the directory source of 0006).
-# The last four are the same marketplace serving *other* repos: a skill that
+# The last six are the same marketplace serving *other* repos: a skill that
 # documents a tool is that tool's manual, so it lives in the tool's own repo and
 # this catalogue holds nothing but a name and a pointer (ADR 0009). Their
 # entries carry no ref and no sha, so each resolves that repo's default branch
 # at install and update time.
 #
 # Each spec is `plugin|marketplace|source`. An empty source means the marketplace
-# is already known to the CLI and must not be added -- which is why the five
+# is already known to the CLI and must not be added -- which is why the seven
 # `context-lab` rows name the source once, on the row that adds it, and the rows
 # after it leave the field empty. Written as a newline list and read with `while
 # read`, not an array: bash 3.2, the oldest interpreter in the fleet, makes
