@@ -60,6 +60,7 @@ it with a new one rather than editing it.
 - [The catalogue has been swept for manuals once, and holds none](../../../docs/adr/0010-the-catalogue-has-been-swept-for-manuals-once.md)
 - [User memory composes by `@`-import, never by symlink](../../../docs/adr/0011-user-memory-composes-by-import-not-symlink.md)
 - [The statusline is composed by a host-owned dispatcher, not owned by this repo](../../../docs/adr/0012-the-statusline-is-composed-not-owned.md)
+- [Dev mode is absent from the architecture, not blocked in it](../../../docs/adr/0013-dev-mode-is-absent-not-blocked.md)
 
 <!-- END GENERATED INDEX -->
 
