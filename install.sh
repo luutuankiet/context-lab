@@ -440,6 +440,69 @@ memory_import() {
   fi
 }
 
+# ------------------------------------------- 4c. statusline dispatcher -------
+
+# The statusline dispatcher. Host infrastructure, not part of the payload: it
+# cannot live in either lab's clone without making the other depend on it to
+# render, so it is written to a host path, byte-identical in every repo that
+# ships it, by whichever installer runs. Either one alone is enough to put it
+# there and neither is necessary.
+#
+# It is a copy, not a merge, which is what makes two independent writers safe.
+DISPATCH_SRC="$REPO/claude/statusline-dispatch.sh"
+DISPATCH_DST="$CLAUDE_DIR/statusline-dispatch.sh"
+
+# The marker in the file, not a version key anywhere else. Reading the artifact
+# itself is what makes this convergent on a host whose state nobody recorded.
+dispatcher_version() { # <file>
+  awk '/^# dispatcher-version:/ { print $3; exit }' "$1" 2>/dev/null
+}
+
+# Idempotent and monotone. Replace an older copy, leave a newer one alone -- so
+# whichever lab installs second never downgrades the other's -- and rewrite a
+# same-version copy whose bytes have drifted, which is what makes a repeat
+# install converge from a hand-edited host rather than accumulating on it.
+#
+# Runs before the settings merge, because that merge is what points `statusLine`
+# at this file. Writing the value first would name a path that is not there yet,
+# and a statusline command that does not exist blanks the line.
+statusline_dispatcher() {
+  step "4c. statusline dispatcher -> $DISPATCH_DST"
+
+  [ -f "$DISPATCH_SRC" ] || { bad "source missing: $DISPATCH_SRC"; return 0; }
+
+  local want have
+  want=$(dispatcher_version "$DISPATCH_SRC")
+  [ -n "$want" ] || { bad "no dispatcher-version marker in $DISPATCH_SRC"; return 0; }
+
+  if [ -f "$DISPATCH_DST" ]; then
+    have=$(dispatcher_version "$DISPATCH_DST")
+    : "${have:=0}"
+    if [ "$have" -gt "$want" ] 2>/dev/null; then
+      ok "host has dispatcher v$have, newer than this repo's v$want -- left alone"
+      return 0
+    fi
+    if [ "$have" = "$want" ] && cmp -s "$DISPATCH_SRC" "$DISPATCH_DST"; then
+      ok "dispatcher v$have already installed"
+      return 0
+    fi
+  fi
+
+  if [ "$MODE" = check ]; then bad "dispatcher at $DISPATCH_DST is missing or not v$want"; return 0; fi
+  if ! mutating; then would "install dispatcher v$want to $DISPATCH_DST"; return 0; fi
+
+  # Write and move, so a render that fires mid-install reads either the old
+  # file or the new one and never half of either.
+  local tmp="$DISPATCH_DST.$$"
+  mkdir -p -- "$CLAUDE_DIR"
+  if cp -- "$DISPATCH_SRC" "$tmp" && chmod 0755 "$tmp" && mv -- "$tmp" "$DISPATCH_DST"; then
+    ok "dispatcher v$want installed"
+  else
+    rm -f -- "$tmp"
+    bad "could not write $DISPATCH_DST"
+  fi
+}
+
 # ---------------------------------------------------- 5. settings merge ------
 
 # Deep-merge the manifest over live settings, then delete the unset keys.
@@ -582,6 +645,7 @@ install_rtk
 install_plugin
 link_files
 memory_import
+statusline_dispatcher
 merge_settings
 shell_exports
 

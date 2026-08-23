@@ -68,7 +68,7 @@ assert "rtk's PreToolUse hook survived" "/rtk/hook.sh" \
   "$(jq -r '.hooks.PreToolUse[0].hooks[0].command' "$CLAUDE_CONFIG_DIR/settings.json")"
 assert "our UserPromptSubmit hook installed" "1" \
   "$(jq -r '.hooks.UserPromptSubmit | length' "$CLAUDE_CONFIG_DIR/settings.json")"
-assert "owned key overwritten (effortLevel low -> high)" "high" \
+assert "owned key overwritten (effortLevel low -> medium)" "medium" \
   "$(jq -r '.effortLevel' "$CLAUDE_CONFIG_DIR/settings.json")"
 assert "unowned host-local key preserved (spinnerTipsEnabled)" "false" \
   "$(jq -r '.spinnerTipsEnabled' "$CLAUDE_CONFIG_DIR/settings.json")"
@@ -108,8 +108,48 @@ assert "malformed file left untouched" "{ this is not json" "$(cat "$CLAUDE_CONF
 banner "10. a genuinely fresh host (no settings.json at all)"
 fresh; rm -f "$CLAUDE_CONFIG_DIR/settings.json"
 run >/dev/null 2>&1; assert "install exits 0 with no prior settings" "0" "$?"
-assert "manifest keys all present" "19" "$(jq -r 'keys | length' "$REPO/claude/settings.owned.json")"
+assert "manifest keys all present" "20" "$(jq -r 'keys | length' "$REPO/claude/settings.owned.json")"
 run --check >/dev/null 2>&1; assert "--check passes on the fresh host" "0" "$?"
+
+banner "10b. the statusline dispatcher"
+fresh
+run >/dev/null 2>&1
+[ -x "$CLAUDE_CONFIG_DIR/statusline-dispatch.sh" ]
+assert "written to the host, and executable" "0" "$?"
+cmp -s "$REPO/claude/statusline-dispatch.sh" "$CLAUDE_CONFIG_DIR/statusline-dispatch.sh"
+assert "byte-identical to the repo's copy" "0" "$?"
+# The one that catches a half-migration: the settings value and the file on
+# disk have to name the same thing, or the line goes blank with no error.
+DECLARED=$(jq -r '.statusLine.command' "$CLAUDE_CONFIG_DIR/settings.json")
+assert "settings declares the dispatcher" "bash ~/.claude/statusline-dispatch.sh" "$DECLARED"
+eval "[ -x ${DECLARED#bash } ]" 2>/dev/null
+assert "and the path it names exists on this host" "0" "$?"
+
+# Capture, never `run | grep -q`. Under `pipefail` an early-exiting grep closes
+# the pipe, SIGPIPEs the installer, and the assertion reads 141 for a run that
+# actually succeeded.
+saw() { case "$1" in *"$2"*) printf 0 ;; *) printf 1 ;; esac; }
+
+V=$(awk '/^# dispatcher-version:/ { print $3; exit }' "$REPO/claude/statusline-dispatch.sh")
+OUT=$(run 2>&1)
+assert "a repeat install recognises it rather than rewriting" "0" "$(saw "$OUT" "dispatcher v$V already installed")"
+
+printf '# vandalised\n' >> "$CLAUDE_CONFIG_DIR/statusline-dispatch.sh"
+run >/dev/null 2>&1
+cmp -s "$REPO/claude/statusline-dispatch.sh" "$CLAUDE_CONFIG_DIR/statusline-dispatch.sh"
+assert "a hand-edited copy converges back" "0" "$?"
+
+# The other half of the lab, one version ahead. Whichever installer runs second
+# must not walk the host backwards.
+sed 's/^# dispatcher-version: .*/# dispatcher-version: 99/' \
+  "$REPO/claude/statusline-dispatch.sh" > "$CLAUDE_CONFIG_DIR/statusline-dispatch.sh"
+BEFORE=$(cat "$CLAUDE_CONFIG_DIR/statusline-dispatch.sh")
+run >/dev/null 2>&1
+assert "a newer dispatcher is never downgraded" "$BEFORE" "$(cat "$CLAUDE_CONFIG_DIR/statusline-dispatch.sh")"
+
+fresh; rm -f "$CLAUDE_CONFIG_DIR/settings.json"
+OUT=$(run --check 2>&1)
+assert "--check names a host with no dispatcher" "0" "$(saw "$OUT" "dispatcher at")"
 
 banner "11. the shipped scripts actually run"
 printf '%s' '{"model":{"display_name":"Claude Opus 5"},"context_window":{"used_percentage":42,"context_window_size":1000000,"total_input_tokens":1200,"total_output_tokens":340,"current_usage":{"cache_read_input_tokens":900,"input_tokens":100,"cache_creation_input_tokens":200,"output_tokens":40}}}' \

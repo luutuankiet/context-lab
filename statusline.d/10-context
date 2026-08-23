@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+#
+# The primary line: working directory, model, context usage.
+#
+# A statusline contributor. It is discovered by the dispatcher because it lives
+# in this repo's `statusline.d/` and carries the executable bit -- there is no
+# install step and nothing registers it. It reads the session JSON on stdin and
+# prints its own rows; it knows nothing about any other contributor.
+#
+# Numbered in the `00`-`19` primary range, so it renders first and anything in
+# the `80`-`99` alert range lands on the right of its last row.
+#
+# Written for bash 3.2, the oldest interpreter in the fleet.
+
+set -u
+
+input=$(cat)
+
+# One `jq`, not a dozen. The incumbent statusline spent most of its 48 ms per
+# render on separate `jq` invocations for one field each; a single pass emitting
+# TSV costs one process. `@tsv` escapes any tab or newline inside a field, so a
+# path cannot break the record apart.
+IFS="$(printf '\t')" read -r model_full used_pct total_in total_out win_size cached cwd <<EOF
+$(printf '%s' "$input" | jq -r '[
+    (.model.display_name // "Claude"),
+    (.context_window.used_percentage // 0),
+    (.context_window.total_input_tokens // 0),
+    (.context_window.total_output_tokens // 0),
+    (.context_window.context_window_size // 0),
+    (.context_window.current_usage.cache_read_input_tokens // 0),
+    (.workspace.current_dir // .cwd // "")
+  ] | @tsv' 2>/dev/null)
+EOF
+
+# `context_window.used_percentage` is null rather than zero before the first API
+# call of a session and again after a compaction -- the two moments a human is
+# most likely to be looking. `// 0` in the jq above turns null into 0; this
+# recovers a real number from the token totals when it can.
+: "${used_pct:=0}" "${win_size:=0}" "${total_in:=0}" "${total_out:=0}" "${cached:=0}" "${cwd:=}"
+: "${model_full:=Claude}"
+tokens_io=$((total_in + total_out))
+if [ "$used_pct" = "0" ] && [ "$tokens_io" -gt 0 ] && [ "$win_size" -gt 0 ]; then
+  used_pct=$((tokens_io * 100 / win_size))
+fi
+remaining_pct=$((100 - used_pct))
+[ "$remaining_pct" -lt 0 ] && remaining_pct=0
+
+# awk, not bc. bc is not installed on every host in the fleet, and a statusline
+# that shells out to a missing binary fails silently on every render.
+fmt() {
+  local n="$1"
+  if [ "$n" -ge 1000000 ] 2>/dev/null; then
+    awk -v n="$n" 'BEGIN { printf "%.1fm", n / 1000000 }'
+  elif [ "$n" -ge 1000 ] 2>/dev/null; then
+    awk -v n="$n" 'BEGIN { printf "%.1fk", n / 1000 }'
+  else
+    printf '%s' "$n"
+  fi
+}
+
+# Width belongs to the contributor. The dispatcher will not cut these bytes,
+# because cutting a string mid-ANSI-escape corrupts the colour of everything
+# after it -- so anything that can run long is trimmed here, before any escape
+# is added. Claude Code exports COLUMNS precisely because `tput cols` cannot
+# work from inside a captured subprocess.
+cols="${COLUMNS:-80}"
+[ "$cols" -gt 0 ] 2>/dev/null || cols=80
+
+# Keep the tail of a path rather than the head: the leaf is what identifies it.
+#
+# The marker measures itself. `${#…}` is 1 character under a UTF-8 locale and 3
+# bytes without one, and a statusline inherits whatever locale the session was
+# launched with -- so reserving a hard-coded 1 overruns by two columns on every
+# host whose environment is plain C. Asking the same shell for the same
+# quantity keeps the arithmetic self-consistent either way.
+ELIDE='…'
+trim_left() { # <string> <max>
+  local s="$1" max="$2"
+  if [ "${#s}" -le "$max" ] || [ "$max" -le "${#ELIDE}" ]; then printf '%s' "$s"; return; fi
+  printf '%s%s' "$ELIDE" "${s:$(( ${#s} - max + ${#ELIDE} ))}"
+}
+
+RST=$'\033[0m'
+BOLD=$'\033[1m'
+DIM=$'\033[2m'
+MODEL_CLR=$'\033[38;5;147m'
+
+case "$cwd" in
+  "$HOME")   cwd='~' ;;
+  "$HOME"/*) cwd="~${cwd#"$HOME"}" ;;
+esac
+
+model=${model_full#Claude }
+
+# Row 1: the working directory, on its own row. Older clients may not send it;
+# print no row at all rather than an empty one.
+[ -n "$cwd" ] && printf '  %s\n' "$(trim_left "$cwd" $((cols - 2)))"
+
+# Row 2: model and context. No trailing newline -- the dispatcher joins
+# contributors without inserting one, which is what puts an alert segment on
+# the right of this row instead of on a row of its own.
+context_used=$((used_pct * win_size / 100))
+printf '  %s%s%s  ' "$MODEL_CLR$BOLD" "$model" "$RST"
+printf '  %s/%s %s(%s%%)%s' "$(fmt "$context_used")" "$(fmt "$win_size")" "$DIM" "$used_pct" "$RST"

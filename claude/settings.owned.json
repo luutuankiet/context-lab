@@ -40,7 +40,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "bash ~/.claude/statusline.sh",
+    "command": "bash ~/.claude/statusline-dispatch.sh",
     "padding": 0
   },
   "effortLevel": "medium",

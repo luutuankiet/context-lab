@@ -15,7 +15,10 @@ host this operator works on. Bash and markdown; no build, no runtime.
 - **Key material is blocked by pattern, not path**, and an ignore line is inert
   against a file already tracked at HEAD. The repair is `git rm --cached`.
 - **Write bash for the oldest interpreter in the fleet, 3.2**, under `set -euo
-  pipefail`.
+  pipefail`. No `timeout(1)`, no GNU coreutils — the oldest host has neither.
+- **This repo contributes one statusline segment; it does not own the line.** An
+  executable in `statusline.d/` is discovered every render, so adding or removing
+  one is `git mv`. Contributors own their own width (ADR 0012).
 
 ## Layout
 
@@ -25,6 +28,7 @@ claude/        the payload installed onto every host      install.sh the distrib
 .claude-plugin/ marketplace.json + plugin.json — how skills/stable/ reaches a host
 skills/        stable | in-progress | deprecated          scripts/   repo tooling
 docs/          prose, indexed in docs/README.md           .claude/   the two index skills
+statusline.d/  this repo's statusline contributors        tests/     the dispatcher's own suite
 ```
 
 Only `skills/stable/` installs, enforced by `"skills": ["./skills/stable"]` in
@@ -45,6 +49,7 @@ scripts/skills-publish-gate.sh    # symlink ban + name/dir match + manifest vali
 ./test-install.sh                 # assertions against a throwaway $HOME
 scripts/gen-docs-index.sh --check # fail if any generated index is stale
 skills/stable/*/tests/run.sh      # a skill's own regression tests, where it has them
+tests/statusline/run.sh           # the dispatcher's failure modes, run not asserted
 ```
 
 No CI, no other test runner. Nothing runs these for you.
