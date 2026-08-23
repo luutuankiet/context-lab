@@ -16,6 +16,7 @@ something is implemented.
 | page | covers | verified |
 |---|---|---|
 | [How this repo holds its own context](architecture/repo-context-layout.md) | where agent-facing context lives in this repo, what is always loaded, and how the generated index stays honest | 2026-08-18 |
+| [What this repo runs on a host](architecture/shipped-runtime.md) | where the statusline line comes from, what the hooks do on every prompt and tool call, and why the two never touch | 2026-08-23 |
 | [The skills collection](architecture/skills-collection.md) | where the distributed skills live, how the stable bucket ships as a plugin, and why no third-party skill is vendored here | 2026-08-18 |
 | [The user-tier installer](architecture/user-tier-installer.md) | how a host gets its Claude Code config, what install.sh actually writes, and what --check can and cannot prove | 2026-08-23 |
 
