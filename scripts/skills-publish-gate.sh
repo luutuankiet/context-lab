@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The publish gate. Three mechanical checks that decide whether this repo may be
+# The publish gate. Four mechanical checks that decide whether this repo may be
 # published as a plugin at all. Run it before pushing anything that touches
 # skills/ or .claude-plugin/.
 #
@@ -11,6 +11,10 @@
 #      invokes by frontmatter name; the bucket allowlist selects by directory. A
 #      mismatch publishes a skill nobody can call.
 #   3. The manifests validate --strict, so a typo fails here and not on a host.
+#   4. Every `.sh` under skills/ is 100755 in the index. Mode publishes with the
+#      file, and a script committed 100644 is read-only on every host that
+#      installs it -- `permission denied` at the call site, with nothing wrong
+#      anywhere the other three checks look.
 #
 # Written for bash 3.2 (m3): no associative arrays, no `${arr[*]}` on a possibly
 # empty array under `set -u`.
@@ -61,6 +65,19 @@ else
     printf '%s\n' "$rest" | sed 's/^/        /'
     bad "marketplace manifest failed --strict validation"
   fi
+fi
+
+printf '\n==> 4. shipped scripts carry the executable bit\n'
+# Mode is part of what publishes. A skill script committed 100644 ships
+# read-only, and a SKILL.md that invokes it by path gets `permission denied` on
+# every host while the gate, the tests and `validate --strict` all stay green.
+# Ask the index rather than the working tree: the index is what is pushed.
+notexec=$(git ls-files --stage -- 'skills/*.sh' | grep -v '^100755' | sed 's/.*\t//' || true)
+if [ -n "$notexec" ]; then
+  printf '%s\n' "$notexec" | sed 's/^/        /'
+  bad "shell scripts under skills/ committed without the executable bit"
+else
+  ok "every .sh under skills/ is 100755 in the index"
 fi
 
 printf '\n'
