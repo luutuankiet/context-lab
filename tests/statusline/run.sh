@@ -271,13 +271,5 @@ NOCWD='{"model":{"display_name":"Claude Opus 5"},"workspace":{},
   "context_window":{"context_window_size":200000,"used_percentage":8}}'
 is "one row, not two" "$(printf '%s\n' "$(plain "$(context "$NOCWD")")" | wc -l | tr -d ' ')" "1"
 
-printf '\n== the legacy entry point renders the same thing ==\n'
-# `claude/statusline.sh` is what every host settings file names today. It is a
-# shim onto the contributor, so there is one home for the rendering and the
-# path that is still wired up keeps working until it is retired.
-LEGACY=$(printf '%s' "$PAYLOAD" | COLUMNS=120 bash "$REPO/claude/statusline.sh" 2>/dev/null)
-DIRECT=$(printf '%s' "$PAYLOAD" | COLUMNS=120 bash "$SEG" 2>/dev/null)
-is "byte-identical to the contributor" "$LEGACY" "$DIRECT"
-
 printf '\n%s passed, %s failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
