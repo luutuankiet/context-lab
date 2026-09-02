@@ -20,6 +20,13 @@ input=$(cat)
 # render on separate `jq` invocations for one field each; a single pass emitting
 # TSV costs one process. `@tsv` escapes any tab or newline inside a field, so a
 # path cannot break the record apart.
+#
+# `project_dir` before `current_dir`, and the order is the whole point of the
+# row. `current_dir` is where the session is standing right now and it moves --
+# entering a worktree or a subdirectory drags it along, so the row stops naming
+# the project at the moment a second checkout makes the name matter most.
+# `project_dir` is the directory Claude Code was started in and never moves.
+# The other two remain as fallbacks for clients that send neither.
 IFS="$(printf '\t')" read -r model_full used_pct total_in total_out win_size cached cwd <<EOF
 $(printf '%s' "$input" | jq -r '[
     (.model.display_name // "Claude"),
@@ -28,7 +35,7 @@ $(printf '%s' "$input" | jq -r '[
     (.context_window.total_output_tokens // 0),
     (.context_window.context_window_size // 0),
     (.context_window.current_usage.cache_read_input_tokens // 0),
-    (.workspace.current_dir // .cwd // "")
+    (.workspace.project_dir // .workspace.current_dir // .cwd // "")
   ] | @tsv' 2>/dev/null)
 EOF
 

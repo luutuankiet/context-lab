@@ -206,6 +206,30 @@ is "the working directory gets its own row" "$(printf '%s\n' "$OUT" | sed -n 1p)
 is "model, usage and window on the second" \
    "$(printf '%s\n' "$OUT" | sed -n 2p)" "  Opus 5    16.0k/200.0k (8%)"
 
+printf '\n== the row names the project, not wherever the session wandered ==\n'
+# A session that enters a worktree moves `current_dir` and leaves `project_dir`
+# where it was. The row exists to say which project this window belongs to, so
+# it follows the one that does not move -- otherwise two windows on the same
+# repo become indistinguishable at exactly the moment there are two checkouts.
+WANDERED='{"cwd":"/repo/tmp/worktrees/wt","model":{"display_name":"Claude Opus 5"},
+  "workspace":{"current_dir":"/repo/tmp/worktrees/wt","project_dir":"/repo"},
+  "context_window":{"context_window_size":200000,"used_percentage":8}}'
+is "project_dir wins over a current_dir inside a worktree" \
+   "$(printf '%s\n' "$(plain "$(context "$WANDERED")")" | sed -n 1p)" "  /repo"
+
+# Older clients send no `project_dir` at all; the row must not vanish for them.
+LEGACYDIR='{"cwd":"/fallback","model":{"display_name":"Claude Opus 5"},
+  "workspace":{"current_dir":"/legacy"},
+  "context_window":{"context_window_size":200000,"used_percentage":8}}'
+is "current_dir still carries the row when project_dir is absent" \
+   "$(printf '%s\n' "$(plain "$(context "$LEGACYDIR")")" | sed -n 1p)" "  /legacy"
+
+# And with no workspace at all, the top-level `cwd` is the last resort.
+BARE='{"cwd":"/bare","model":{"display_name":"Claude Opus 5"},
+  "context_window":{"context_window_size":200000,"used_percentage":8}}'
+is "top-level cwd is the last resort" \
+   "$(printf '%s\n' "$(plain "$(context "$BARE")")" | sed -n 1p)" "  /bare"
+
 printf '\n== no trailing newline, so an alert can ride the last row ==\n'
 RAW=$(printf '%s' "$PAYLOAD" | COLUMNS=120 bash "$SEG" 2>/dev/null; printf 'X')
 NL=$'\n'   # never `$(printf '\n')` -- command substitution strips exactly the
@@ -234,7 +258,7 @@ is "from the token totals" \
 
 printf '\n== width is this contributor job, and it does it before any escape ==\n'
 LONGDIR="/tmp/$(printf 'a%.0s' 1 2 3 4 5 6 7 8 9 0)/$(printf 'b%.0s' 1 2 3 4 5 6 7 8 9 0)/$(printf 'c%.0s' 1 2 3 4 5 6 7 8 9 0)/leaf"
-LONGPAY=$(printf '%s' "$PAYLOAD" | jq --arg d "$LONGDIR" '.workspace.current_dir = $d')
+LONGPAY=$(printf '%s' "$PAYLOAD" | jq --arg d "$LONGDIR" '.workspace.project_dir = $d')
 ROW1=$(printf '%s\n' "$(plain "$(context "$LONGPAY" 40)")" | sed -n 1p)
 if [ "${#ROW1}" -le 40 ]; then pass "a long path is trimmed to COLUMNS (${#ROW1} <= 40)"
 else fail "a long path is trimmed to COLUMNS (got ${#ROW1})"; fi
