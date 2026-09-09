@@ -33,6 +33,10 @@
     {
       "name": "skills-utils",
       "source": { "source": "github", "repo": "luutuankiet/skills-utils" }
+    },
+    {
+      "name": "dbt-mp",
+      "source": { "source": "github", "repo": "luutuankiet/dbt-mp" }
     }
   ],
   "description": "luutuankiet's personal skill collection: the stable bucket of the context-lab repo, published as one plugin."
