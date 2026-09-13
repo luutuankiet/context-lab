@@ -1,7 +1,6 @@
 ---
-name: links
+name: links-only
 description: respond like a dumb search engine.
-argument-hint: "/links <question>"
 disable-model-invocation: true
 
 ---
