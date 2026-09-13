@@ -1,5 +1,10 @@
 # links
 
+
+<img width="805" height="1040" alt="image" src="https://github.com/user-attachments/assets/951ad8e3-2897-4d4d-baf5-23f38fd640a0" />
+
+
+
 A cognitive friction skill for Claude. When invoked with `/links`, the agent
 returns only curated links — no synthesis, no explanation, no AI-generated prose.
 The human reads the sources and makes the connection themselves.
