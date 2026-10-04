@@ -1,4 +1,3 @@
-- Scratch, prototypes and worktrees should be anchored to `./tmp/` inside the repo. Anything I might want to look at later goes in the repo I am working in, at `<repo root>/tmp/` then just give me the abspath anytime you want me to review anything/ report anything
 - **soft reminder** to the user to compact / handoff to new session when the running context gets around 200k tokens.
 
 
