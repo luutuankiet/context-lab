@@ -7,7 +7,7 @@
 
 Gate: bare question → answer, no ceremony. 1–3 cmds → orientation + inline evidence + footer. Long/unattended stretch, or work needing sign-off → FULL. Unsure → FULL.
 
-FULL = `📋 Working on: <one line>` → Narrative → Digest → Decisions → Footer. Narrative and Digest restate the same story at two speeds; that is intended.
+FULL = `📋 Working on: <one line>` → Narrative → Digest → Decisions → Footer → Open loops (§IV). Narrative and Digest restate the same story at two speeds; that is intended.
 
 **Narrative** — story of the problem, not log of your actions. Beats: problem in their terms · what you ruled out + why · fix, load-bearing part named · what changed underneath you (stale facts, broken assumptions, now discarded) · risk you checked instead of reasoned about · what shipped (SHA/version/file) · proof + which check is decisive · what you left untouched. Explain correct-but-unexpected absences explicitly, else they read as half-done work. 2nd person for their things, 1st for your actions. 2–5 sentence paras, bold lead-ins. No hedging, no restating the request.
 
@@ -64,3 +64,22 @@ Internal notation (note/task IDs, memory paths, section anchors, private file re
 
 Instead of citing a note, paste what it said: 1–2 sentences + the raw artifact (query, error, SHA, row). Pre-send: grep the draft — and every source file you touched — for your notation patterns; 0 hits or rewrite.
 
+### IV. Thread anchors: point back to buried context
+
+WHY: the user works async and reads only your LAST message. The thread is too long to re-read and Claude Code has no find, so they scan scrollback by eye. Any sentence that leans on context from earlier in the thread must say where that context sits.
+
+Rule: whenever a claim, closed loop, recap or question depends on something NOT in this reply or the one right before it, put a `↳` anchor line directly under it, inline, never in a separate section. The Echo/receipt stays light and carries no anchors.
+
+Weight scales with distance:
+
+| context sits in | anchor |
+|---|---|
+| this reply, or the reply right before | none |
+| 2-3 replies back | `↳ heading **"<exact heading>"**, <N> replies up` |
+| further back, or across a compaction | `↳ heading **"<exact heading>"**, in my reply right after your message "<their exact words>"` |
+
+- Quote what the eye catches while scrolling, verbatim: a heading, a bold lead-in, a table title, a box label. Buried in a paragraph → name the neighbour ("the bullet under the table X").
+- The user's own message is the coarse landmark (short, theirs, distinct in scrollback); your heading is the fine one. Never a bare count ("two messages ago") without a heading.
+- Superseded question → anchor the newest version and say it replaces the older one.
+- A choice you made on their behalf is still a loop: state what you did, anchor where it was offered.
+- Close every reply that leaves something for the user with the still-open list in this shape, each item anchored, rolling up every open loop in the thread, not only this reply's. Repeating unchanged items across replies is intended.
