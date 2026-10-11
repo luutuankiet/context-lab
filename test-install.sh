@@ -182,6 +182,21 @@ assert "the statusline contributor runs without bc" "0" "$?"
 printf '%s' '{}' | bash "$REPO/claude/hooks/token-tracker.sh" PostToolUse >/dev/null 2>&1
 assert "token-tracker.sh no-ops on an empty payload" "0" "$?"
 
+# Inside a subagent the payload's transcript_path is the parent's; the hook must
+# size the subagent's own transcript and, past the checkpoint, send the rules once.
+S="tt-$$"; mkdir -p "$T/proj/$S/subagents"
+printf '%s\n' '{"type":"assistant","message":{"usage":{"input_tokens":10,"cache_read_input_tokens":5000,"cache_creation_input_tokens":0,"output_tokens":10}}}' > "$T/proj/$S.jsonl"
+printf '%s\n' '{"type":"assistant","message":{"usage":{"input_tokens":10,"cache_read_input_tokens":130000,"cache_creation_input_tokens":0,"output_tokens":10}}}' > "$T/proj/$S/subagents/agent-a1.jsonl"
+tt() { printf '{"session_id":"%s","transcript_path":"%s"%s}' "$S" "$T/proj/$S.jsonl" "$1" | bash "$REPO/claude/hooks/token-tracker.sh" PostToolUse; }
+OUT=$(tt ',"agent_id":"a1"')
+assert "a subagent is shown its own context" "0" "$(saw "$OUT" "Context: 130.0k (this subagent)")"
+assert "the checkpoint sends the handoff rules" "0" "$(saw "$OUT" "SUBAGENT CHECKPOINT")"
+OUT=$(tt ',"agent_id":"agent-a1"')
+assert "the rules go once; later calls get one line" "1" "$(saw "$OUT" "HANDOFF:")"
+OUT=$(tt '')
+assert "the main thread is unchanged" "1" "$(saw "$OUT" "subagent")"
+rm -f /tmp/cc-token-"$S"*
+
 banner "12. the payload carries no import of its own"
 # The payload is imported, never linked, so a relative @import inside it would
 # resolve against the marketplace clone rather than $CLAUDE_DIR and silently

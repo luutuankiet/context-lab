@@ -68,6 +68,22 @@ payload_field() {
 session_id=$(payload_field '.session_id // empty')
 transcript_path=$(payload_field '.transcript_path // empty')
 
+# ---- Inside a subagent, measure the subagent ----
+# Tool events fired by a subagent carry .agent_id, but .transcript_path is still
+# the MAIN session's transcript, so without this a subagent is shown its
+# parent's context. Its own transcript sits beside it in a nested subagents/
+# folder; the docs show the id both with and without the "agent-" prefix.
+agent_id=$(payload_field '.agent_id // empty' | tr -cd 'A-Za-z0-9._-')
+agent_id="${agent_id#agent-}"
+if [ -n "$agent_id" ] && [ -n "$transcript_path" ]; then
+  transcript_path="${transcript_path%.jsonl}/subagents/agent-${agent_id}.jsonl"
+  session_id="${session_id}-agent-${agent_id}"
+fi
+
+# Subagents cannot compact, so past these lines they are told to wrap up.
+SUBAGENT_CHECKPOINT="${SUBAGENT_CHECKPOINT:-120000}"
+SUBAGENT_CEILING="${SUBAGENT_CEILING:-160000}"
+
 # ---- Derive a filesystem-safe, per-session state key ----
 # Strip everything outside [A-Za-z0-9._-] so the key can never contain a slash
 # and therefore can never escape /tmp; cap the length to stay under NAME_MAX.
@@ -255,6 +271,7 @@ fi
 
 # ---- Build context line ----
 context_line="Context: $(fmt $current_context)${turn_delta}"
+[ -n "$agent_id" ] && context_line="${context_line} (this subagent)"
 
 # ---- Write summary file (for external consumers) ----
 echo "$context_line" > "$SUMMARY_FILE"
@@ -307,6 +324,34 @@ Use the most recent value you have seen from this hook. Nothing else on the line
 Do not omit it, do not editorialise about it, and do not repeat it mid-response."
 else
   payload="$context_line"
+fi
+
+# ---- Subagent wrap-up ----
+# The full rules are sent once per stage crossed; every later tool call gets a
+# one-line reminder, so a long tail past the line costs a few tokens a call.
+if [ -n "$agent_id" ] && [ "$current_context" -ge "$SUBAGENT_CHECKPOINT" ]; then
+  STAGE_FILE="/tmp/cc-token-${state_key}-stage"
+  prev_stage=$(cat "$STAGE_FILE" 2>/dev/null || echo 0)
+  prev_stage=$(printf '%s' "$prev_stage" | tr -cd '0-9')
+  [ -z "$prev_stage" ] && prev_stage=0
+  stage=1
+  [ "$current_context" -ge "$SUBAGENT_CEILING" ] && stage=2
+  echo "$stage" > "$STAGE_FILE"
+
+  handoff_rules="HANDOFF: 1. Commit all work on your branch, a WIP commit if unfinished; never leave changes only in the worktree. 2. Write <repo root>/tmp/YYYYMMDD/<topic>/handoff.md (today's date, untracked) for a fresh agent with no context: goal and ticket link; done, with commit SHAs; state (branch, WIP SHA, worktree path); verified vs not verified; the next 3 steps; traps you hit; suggested skills. Link specs, diffs and issues instead of copying them; never write secrets. 3. Stop. Your final message gives the handoff path, the WIP SHA and your progress estimate with its reason."
+  if [ "$stage" -eq 2 ] && [ "$prev_stage" -lt 2 ]; then
+    payload="${payload}
+SUBAGENT CEILING ($(fmt $SUBAGENT_CEILING)): you have no compaction and are past the size where quality drops. Hand off NOW, however close you are to done.
+${handoff_rules}"
+  elif [ "$stage" -eq 2 ]; then
+    payload="${payload}; past the subagent ceiling: hand off now."
+  elif [ "$prev_stage" -lt 1 ]; then
+    payload="${payload}
+SUBAGENT CHECKPOINT ($(fmt $SUBAGENT_CHECKPOINT)): you have no compaction. Estimate how much of your task is done. At 80% or more, finish it and report as normal. Below 80%, hand off. Either way, at $(fmt $SUBAGENT_CEILING) you must hand off.
+${handoff_rules}"
+  else
+    payload="${payload}; past the subagent checkpoint: finish if 80% done, else hand off; hard handoff at $(fmt $SUBAGENT_CEILING)."
+  fi
 fi
 
 jq -n \
