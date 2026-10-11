@@ -77,7 +77,6 @@ agent_id=$(payload_field '.agent_id // empty' | tr -cd 'A-Za-z0-9._-')
 agent_id="${agent_id#agent-}"
 if [ -n "$agent_id" ] && [ -n "$transcript_path" ]; then
   transcript_path="${transcript_path%.jsonl}/subagents/agent-${agent_id}.jsonl"
-  session_id="${session_id}-agent-${agent_id}"
 fi
 
 # Subagents cannot compact, so past these lines they are told to wrap up.
@@ -96,6 +95,9 @@ if [ -z "$state_key" ] && [ -n "$transcript_path" ]; then
   fi
 fi
 [ -z "$state_key" ] && state_key="default"
+# A subagent gets its own key, appended after the cap so a long session id can
+# never truncate the agent part away and merge two agents' state.
+[ -n "$agent_id" ] && state_key="${state_key}-agent-$(printf '%s' "$agent_id" | cut -c1-64)"
 
 SUMMARY_FILE="/tmp/cc-token-${state_key}-summary.txt"
 CUMULATIVE_FILE="/tmp/cc-token-${state_key}-cumulative.json"

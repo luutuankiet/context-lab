@@ -195,6 +195,30 @@ OUT=$(tt ',"agent_id":"agent-a1"')
 assert "the rules go once; later calls get one line" "1" "$(saw "$OUT" "HANDOFF:")"
 OUT=$(tt '')
 assert "the main thread is unchanged" "1" "$(saw "$OUT" "subagent")"
+
+# No leaks: sibling agents, the same agent id in another session, a session id
+# long enough to hit the key cap, and calls fired in parallel.
+use() { printf '{"type":"assistant","message":{"usage":{"input_tokens":0,"cache_read_input_tokens":%s,"cache_creation_input_tokens":0,"output_tokens":0}}}\n' "$2" >> "$1"; }
+L="$S-$(printf 'x%.0s' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60)"
+for s in "$S" "$S-other" "$L"; do mkdir -p "$T/proj/$s/subagents"; use "$T/proj/$s.jsonl" 5000; done
+use "$T/proj/$S/subagents/agent-b2.jsonl" 21000
+use "$T/proj/$S-other/subagents/agent-a1.jsonl" 31000
+use "$T/proj/$L/subagents/agent-p1.jsonl" 140000
+use "$T/proj/$L/subagents/agent-p2.jsonl" 141000
+tq() { printf '{"session_id":"%s","transcript_path":"%s","agent_id":"%s"}' "$1" "$T/proj/$1.jsonl" "$2" | bash "$REPO/claude/hooks/token-tracker.sh" PostToolUse; }
+for r in 1 2 3; do
+  for p in "$S a1" "$S b2" "$S-other a1" "$L p1" "$L p2"; do tq $p > "$T/out-${p// /-}-$r" & done
+done
+wait
+LEAK=0
+for r in 1 2 3; do
+  for want in "$S-a1 130.0k" "$S-b2 21.0k" "$S-other-a1 31.0k" "$L-p1 140.0k" "$L-p2 141.0k"; do
+    saw "$(cat "$T/out-${want% *}-$r")" "Context: ${want#* } (this subagent)" | grep -q 0 || LEAK=$((LEAK+1))
+  done
+done
+assert "15 parallel calls across agents and sessions each see their own number" "0" "$LEAK"
+assert "two siblings past the line each get the full rules" "0" \
+  "$(( $(saw "$(cat "$T/out-$L-p1-"*)" "SUBAGENT CHECKPOINT") + $(saw "$(cat "$T/out-$L-p2-"*)" "SUBAGENT CHECKPOINT") ))"
 rm -f /tmp/cc-token-"$S"*
 
 banner "12. the payload carries no import of its own"
