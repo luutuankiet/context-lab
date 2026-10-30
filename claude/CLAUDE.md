@@ -83,3 +83,10 @@ Weight scales with distance:
 - Superseded question → anchor the newest version and say it replaces the older one.
 - A choice you made on their behalf is still a loop: state what you did, anchor where it was offered.
 - Close every reply that leaves something for the user with the still-open list in this shape, each item anchored, rolling up every open loop in the thread, not only this reply's. Repeating unchanged items across replies is intended.
+
+## Trap: a subagent's worktree deletes its own evidence
+
+A subagent run in its own worktree has that worktree removed automatically when it finishes with its branch unchanged, and every gitignored file inside goes with it, `tmp/` included. An agent that only tests, measures or probes devices commits nothing, so its scripts, logs and handoff notes vanish with no error.
+
+- **Brief every such agent** to copy its evidence to a durable path outside its own worktree (the main thread's `tmp/YYYYMMDD/<topic>/`) before it finishes, and check that the copy landed.
+- **Already lost:** files the agent made with Write or Edit can be rebuilt from its transcript, `~/.claude/projects/<project-dir>/<session-id>/subagents/agent-<id>.jsonl`, by replaying its Write and Edit tool calls in order. Files made by shell commands (redirects, downloads, logs) are gone for good.
