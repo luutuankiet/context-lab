@@ -24,6 +24,8 @@ when a script needs it, and the repo's text names that machine by its role inste
 
 The gate matches a value as a whole string, so `HOSTS="one two"` does not block
 `one` alone. Give a URL two keys when both forms matter: the full URL and its host.
+A private repo's URL gets a different set, because a shared host cannot be blocked;
+see [reference-clones.md](reference-clones.md).
 
 Notes go on their own line. In `KEY=value # note` the note can become part of the
 value, and the bare value then passes the gate.
