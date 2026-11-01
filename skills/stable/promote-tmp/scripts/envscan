@@ -11,9 +11,9 @@
 # leaves no binary behind and exits 3 with a line naming what is missing, so it
 # never reads as a clean scan (0) or as leaks found (1).
 #
-# The outbound gate calls the binary directly, never this launcher, because a
-# download can outlast a hook's timeout. $HOME/.local/bin may be off PATH, so
-# callers use the absolute path this prints.
+# The pre-push hook calls the binary directly, never this launcher, so a push
+# never waits on a download. $HOME/.local/bin may be off PATH, so callers use
+# the absolute path this prints.
 #
 # Written for bash 3.2 under set -euo pipefail: no timeout(1), no GNU coreutils.
 #

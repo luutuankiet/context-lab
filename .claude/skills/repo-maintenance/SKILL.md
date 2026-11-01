@@ -64,6 +64,7 @@ it with a new one rather than editing it.
 - [Dev mode is absent from the architecture, not blocked in it](../../../docs/adr/0013-dev-mode-is-absent-not-blocked.md)
 - [Executables ship as plugin content, not as symlinks into a clone](../../../docs/adr/0014-executables-ship-as-plugin-content.md)
 - [`tmp/` promotion copies what runs and rewrites what is read](../../../docs/adr/0015-tmp-promotion-copies-what-runs-and-rewrites-what-is-read.md)
+- [No outbound gate on agent tool calls](../../../docs/adr/0016-no-outbound-gate-on-agent-tool-calls.md)
 
 <!-- END GENERATED INDEX -->
 

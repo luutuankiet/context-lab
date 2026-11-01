@@ -119,10 +119,8 @@ assert "hooks/hooks.json is valid JSON" "0" \
   "$(jq -e . "$REPO/hooks/hooks.json" >/dev/null 2>&1; echo $?)"
 assert "both events bound to the plugin-root path" "2" \
   "$(grep -c 'CLAUDE_PLUGIN_ROOT.*token-tracker\.sh' "$REPO/hooks/hooks.json")"
-assert "the outbound gate bound once, to Bash and the GitHub MCP tools" "Bash|mcp__.*gh-cli__.*" \
-  "$(jq -r '.hooks.PreToolUse[] | select(.hooks[].command | test("CLAUDE_PLUGIN_ROOT.*outbound-gate\\.sh")) | .matcher' "$REPO/hooks/hooks.json")"
-assert "the outbound gate blocks when the hook itself fails" "block" \
-  "$(jq -r '.hooks.PreToolUse[].hooks[] | select(.command | test("outbound-gate")) | .onFailure' "$REPO/hooks/hooks.json")"
+assert "no PreToolUse binding ships (ADR 0016)" "false" \
+  "$(jq -r '.hooks | has("PreToolUse")' "$REPO/hooks/hooks.json")"
 
 banner "8. drift: an owned key hand-edited"
 tmp=$(mktemp); jq '.effortLevel = "low"' "$CLAUDE_CONFIG_DIR/settings.json" > "$tmp"; mv "$tmp" "$CLAUDE_CONFIG_DIR/settings.json"

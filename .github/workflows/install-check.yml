@@ -9,8 +9,6 @@ on:
   pull_request:
     paths:
       - skills/stable/promote-tmp/**
-      - claude/hooks/outbound-gate.sh
-      - tests/gate/**
       - .github/workflows/install-check.yml
 
 permissions:
@@ -52,9 +50,3 @@ jobs:
           export HOME="$RUNNER_TEMP/empty-home-2"
           mkdir -p "$HOME"
           ENVSCAN_BIN="$RUNNER_TEMP/envscan-bin/envscan" /bin/bash skills/stable/promote-tmp/tests/run.sh
-
-      - name: Outbound gate shim with the installed binary
-        run: |
-          export HOME="$RUNNER_TEMP/empty-home-3"
-          mkdir -p "$HOME"
-          ENVSCAN="$RUNNER_TEMP/envscan-bin/envscan" /bin/bash tests/gate/run.sh

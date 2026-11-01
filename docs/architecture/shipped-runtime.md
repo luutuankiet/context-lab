@@ -173,8 +173,7 @@ a row of its own.
 Nothing in this section touches the statusline.
 
 `hooks/hooks.json` at the plugin root is discovered by filename; no manifest key
-points at it. It binds the token tracker to two events with a different argument,
-and the outbound gate (below) to a third:
+points at it. It binds the token tracker to two events with a different argument:
 
 | event | fires | argument |
 |---|---|---|
@@ -189,24 +188,9 @@ what runs is published plugin content rather than anyone's working copy.
 > not override it. Adding a binding here without deleting the matching
 > `settings.json` entry makes it fire twice per event, with no error anywhere.
 
-### The outbound gate
-
-A `PreToolUse` binding, matcher `Bash|mcp__.*gh-cli__.*`, runs
-`claude/hooks/outbound-gate.sh` with `"timeout": 10` and `"onFailure": "block"`.
-It exists to stop a known `.env` value leaving through a commit, a push or a
-GitHub post; the judgement is the separate `envscan gate` binary, and the shim
-only decides what the binary cannot:
-
-| situation | result |
-|---|---|
-| no `.env`, and no `.env.example` with a `# what:` line, at the checkout root or the main checkout of a worktree | exit 0, silent |
-| `envscan` on `PATH`, else at `$HOME/.local/bin/envscan` | the hook JSON is piped to `envscan gate`; any non-zero exit becomes 2 |
-| no binary, `Bash` command without a `git` or `gh` word | exit 0 |
-| no binary, anything else, including unreadable input and every GitHub MCP call but the read tools | exit 2, naming how to install |
-
-Exit 1 and a timeout both let the call through, so the shim traps `ERR` to exit 2
-and never lets the binary's exit 3 escape. `tests/gate/run.sh` drives it with real
-hook JSON from a main checkout and a linked worktree (verified 2026-11-01).
+No `PreToolUse` binding ships. An outbound gate on agent tool calls was built and
+then removed (ADR 0016); the only check on a known `.env` value leaving is the git
+`pre-push` hook that the promote-tmp skill installs in a repo with `.env`.
 
 ### What the tracker does
 
