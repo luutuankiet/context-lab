@@ -18,7 +18,20 @@ that must not leave, without knowing what the value means.
 | what a key means | `.env.example` only |
 
 A machine name is the one deliberate exception for common words: it stays in `.env`
-when a script needs it, and the repo's text names that machine by its role instead.
+when a script needs it, and the repo's text names that machine by its key too.
+
+## Writing a key in text
+
+**A phrase that points to one specific sensitive thing is written as a bare `$KEY`,
+never as a prose description and never with a role beside it.** Use `${KEY}` when text
+directly follows it. An agent resolves it with `envscan hydrate`, so it never has to
+rebuild the meaning from context. General terms such as "client repos" stay as words.
+
+The scanner matches values, so it cannot recognise a prose stand-in. This rule and the
+menu review are the only controls on one.
+
+In a shell, an unquoted or double-quoted `$KEY` expands, usually to blank, because
+`.env` is never sourced. Post through a body file or a literal heredoc.
 
 ## One value per key
 
