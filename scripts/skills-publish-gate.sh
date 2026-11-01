@@ -16,7 +16,7 @@
 #      installs it -- `permission denied` at the call site, with nothing wrong
 #      anywhere the other three checks look.
 #
-# Written for bash 3.2 (m3): no associative arrays, no `${arr[*]}` on a possibly
+# Written for bash 3.2 (the macOS client): no associative arrays, no `${arr[*]}` on a possibly
 # empty array under `set -u`.
 set -euo pipefail
 

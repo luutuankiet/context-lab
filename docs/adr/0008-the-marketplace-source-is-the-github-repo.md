@@ -17,7 +17,7 @@ plainly: "point the marketplace at the GitHub repo instead of the clone and skil
   clone on one host and consumed on six. The property 0006 optimised for — an
   uncommitted edit visible to the next session — applies only to the authoring
   host, and every other host still needed `git pull` to see anything.
-- **The clone's *branch* silently became the payload.** Measured on thinkpad
+- **The clone's *branch* silently became the payload.** Measured on the homelab server
   2026-08-18: with a directory source the recorded plugin version came out as
   `31d4acf`, the HEAD of a merged feature branch that happened to be checked out,
   not `main`. Nothing announces this. A remote source serves the default branch

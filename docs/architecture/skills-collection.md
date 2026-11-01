@@ -73,7 +73,7 @@ claude plugin install context-lab@context-lab     # first-class source
 `install.sh` step 3 does both, idempotently, for this plugin and the upstream one.
 
 **Write for the oldest CLI in the fleet, not the newest.** Measured against
-2.1.81 on personal, where the others run 2.1.233/234:
+2.1.81 on the host with the oldest CLI, where the others run 2.1.233/234:
 
 | | 2.1.81 | 2.1.233+ |
 |---|---|---|
@@ -159,7 +159,7 @@ Installing the plugin means taking all of it.
 ## Collision with a local skill is narrower than it looks
 
 Verified rather than assumed: skills **never shadow across levels — both appear**.
-A personal skill beats a project one for the bare name, which is the *inverse* of
+A user-level skill beats a project one for the bare name, which is the *inverse* of
 settings precedence. Plugin skills are always namespaced (`plugin:skill`). The
 entire collision surface is that a same-named local skill revokes the plugin
 skill's bare `/name` shortcut — it does not hide the skill.

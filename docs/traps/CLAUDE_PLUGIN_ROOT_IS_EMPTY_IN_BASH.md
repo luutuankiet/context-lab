@@ -22,7 +22,7 @@ exists.
 
 The harness states the skill's base directory when it injects the skill
 ("Base directory for this skill: …"). That is the anchor to use, and it is
-correct under every install shape — plugin, project skill, or personal skill:
+correct under every install shape — plugin, project skill, or user-level skill:
 
 ```bash
 <this skill's base directory>/scripts/thing.sh

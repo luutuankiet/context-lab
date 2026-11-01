@@ -8,7 +8,7 @@
     {
       "name": "context-lab",
       "source": "./",
-      "description": "Skills for working with agents across a personal fleet: dbt/BigQuery optimisation, MCP development, long-running remote jobs, repo housekeeping, and release."
+      "description": "Skills for working with agents across a small fleet: dbt/BigQuery optimisation, MCP development, long-running remote jobs, repo housekeeping, and release."
     },
     {
       "name": "write-pr",
@@ -35,5 +35,5 @@
       "source": { "source": "github", "repo": "luutuankiet/dbt-mp" }
     }
   ],
-  "description": "luutuankiet's personal skill collection: the stable bucket of the context-lab repo, published as one plugin."
+  "description": "luutuankiet's skill collection: the stable bucket of the context-lab repo, published as one plugin."
 }

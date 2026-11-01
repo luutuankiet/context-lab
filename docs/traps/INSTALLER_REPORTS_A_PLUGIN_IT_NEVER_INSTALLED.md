@@ -32,7 +32,7 @@ With `context-lab-private` installed, `grep -q "context-lab"` succeeds on both.
 `add_marketplace` concludes the marketplace is already configured and returns
 early; `install_one_plugin` concludes the plugin is already installed and takes
 the "already there, just refresh" path. Every branch reports success. Measured on
-thinkpad 2026-08-18: `context-lab` had never been added on any host, across
+the homelab server 2026-08-18: `context-lab` had never been added on any host, across
 repeated installs, and no run ever said so.
 
 The pair is what makes it invisible. A wrong "already installed" alone would be
@@ -70,5 +70,5 @@ or `would claude plugin install …`. If it prints `ok … installed` while
 
 **A guard that reports "already done" must match exactly, because its failure mode
 is silence.** An unanchored `grep` inside a check is a bug the moment two names in
-the namespace share a prefix — and a personal namespace is exactly where
+the namespace share a prefix — and a single owner's namespace is exactly where
 `foo` and `foo-private` both exist.

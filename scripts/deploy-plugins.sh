@@ -1,15 +1,26 @@
 #!/usr/bin/env bash
 # Refresh marketplaces and update every installed plugin on each host named in
 # .env, all hosts at once. Open sessions still need /reload-plugins or a restart.
-#   DEPLOY_HOSTS="alias-one alias-two"   SSH aliases, space separated
-# Reads that one key, never the rest of .env, which holds unrelated secrets.
+#   DEPLOY_HOST_1=alias-one              one SSH alias per key, numeric order
+#   DEPLOY_HOST_2="alias-two"            gaps are fine; comment a line to retire it
+# Reads only those keys, never the rest of .env, which holds unrelated secrets.
 set -euo pipefail
 
 env_file="$(cd "$(dirname "$0")/.." && pwd)/.env"
 
-hosts="$(sed -n 's/^DEPLOY_HOSTS="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' "$env_file")"
-if [ -z "$hosts" ]; then
-  echo "DEPLOY_HOSTS is not set in $env_file" >&2
+hosts="$(sed -n 's/^DEPLOY_HOST_\([0-9][0-9]*\)="\{0,1\}\([^"]*\)"\{0,1\}$/\1 \2/p' "$env_file" | sort -n | cut -d' ' -f2-)"
+case "$hosts" in
+  *' '*|*$'\t'*)
+    echo "A DEPLOY_HOST_<number> key holds more than one value: use one host per key" >&2
+    exit 2
+    ;;
+esac
+set -- $hosts
+if [ "$#" -eq 0 ]; then
+  echo "No DEPLOY_HOST_<number>=<ssh-alias> keys with a value in $env_file" >&2
+  if grep -q '^DEPLOY_HOSTS=' "$env_file"; then
+    echo "DEPLOY_HOSTS is no longer read: split it into numbered keys, one host each" >&2
+  fi
   exit 2
 fi
 
@@ -45,7 +56,6 @@ count() { # pattern file: prints the number of matching lines
   grep -c "$1" "$2" || true
 }
 
-set -- $hosts
 printf '%sDeploying to %s hosts at once...%s\n' "$bold" "$#" "$off"
 
 pids=""
@@ -67,7 +77,7 @@ for host in $hosts; do
 done
 wait $pids || true
 
-# Details per host, in DEPLOY_HOSTS order. Only what changed or broke is listed.
+# Details per host, in numeric key order. Only what changed or broke is listed.
 for host in $hosts; do
   log="$logs/$host"
   printf '\n%s%s%s\n' "$bold" "$host" "$off"

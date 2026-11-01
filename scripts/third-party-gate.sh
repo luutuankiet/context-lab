@@ -46,7 +46,7 @@ FAILED=0
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-# sha256sum on Linux, shasum -a 256 on Darwin. m3 is a Mac.
+# sha256sum on Linux, shasum -a 256 on Darwin. The main client is a Mac.
 if command -v sha256sum >/dev/null 2>&1; then hash_stdin() { sha256sum | cut -c1-16; }
 elif command -v shasum   >/dev/null 2>&1; then hash_stdin() { shasum -a 256 | cut -c1-16; }
 else echo "no sha256 tool on PATH" >&2; exit 2; fi
