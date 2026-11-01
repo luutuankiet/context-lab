@@ -21,7 +21,7 @@
 # it at a local server. The floor itself cannot be overridden.
 set -euo pipefail
 
-ENVSCAN_MIN_VERSION="0.1.0"
+ENVSCAN_MIN_VERSION="0.1.1"
 ENVSCAN_REPO="luutuankiet/envscan"
 BASE="${ENVSCAN_RELEASE_BASE:-https://github.com/$ENVSCAN_REPO/releases/download}"
 BIN_DIR="$HOME/.local/bin"
