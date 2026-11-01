@@ -14,12 +14,20 @@ Start one independent session with `claude --bg`. It is a separate process, so c
    - Work with a person in the loop, such as a grilling session: open the ticket, call its skills, ask the first round, then wait for the user to attach.
    - Unattended work: name the results file, then wait to answer questions from later sessions.
 
-3. **Use absolute paths in the hand-off.** A `--bg` session moves into a fresh git worktree under `.claude/worktrees/` before its first edit, and gitignored files such as `tmp/` and `.env` are absent there. Give every file to read or write as an absolute path into the main checkout, including the results file.
+3. **Choose where it works.** Use the checkout unless the task needs isolation. Work there shares gitignored files such as `tmp/` and `.env`, and it shares the branch with any other session editing that checkout. Choose a worktree only when the task is cleanly isolated: it needs none of those gitignored files, and its edits could collide with other work. A worktree session gets a fresh copy under `.claude/worktrees/` before its first edit, so give it absolute paths into the main checkout for anything it must read or leave behind, including the results file.
 
-4. **Launch from the directory the work belongs to.**
+4. **Launch from the directory the work belongs to.** Pass no `--permission-mode`, so the session inherits this machine's default.
+
+   In the checkout:
 
    ```sh
-   cd <target repo> && claude --bg -n <name> --permission-mode auto -- "Read <absolute brief path> and follow it."
+   cd <target repo> && claude --bg -n <name> --settings '{"worktree":{"bgIsolation":"none"}}' -- "Read <brief path> and follow it."
+   ```
+
+   In a worktree, which is what `--bg` does when not told otherwise:
+
+   ```sh
+   cd <target repo> && claude --bg -n <name> -- "Read <absolute brief path> and follow it."
    ```
 
    Keep the `--` before the prompt, because options that take lists would otherwise swallow it. Done when the command prints a short id.
