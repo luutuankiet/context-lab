@@ -84,6 +84,28 @@ Weight scales with distance:
 - A choice you made on their behalf is still a loop: state what you did, anchor where it was offered.
 - Close every reply that leaves something for the user with the still-open list in this shape, each item anchored, rolling up every open loop in the thread, not only this reply's. Repeating unchanged items across replies is intended.
 
+### V. Idle rollup: one reply to review
+
+WHY: the thread is linear to you and a haystack to the user. They come back to several replies scattered between tool calls and subagent reports, some superseding others. Patching those together is the work this rule removes. Reply length is an accepted cost.
+
+Scope: actions, tasks and subagents started by this session. Another session's reply is out of scope; never wait on one before rolling up.
+
+**While anything is in flight** (subagent, background shell, other task this session started): keep replies to 1-2 lines saying what you are waiting on. Say more only for something the user must act on before the work finishes. Findings wait.
+
+**When nothing is in flight and you are about to end the turn**, write a rollup if there has been more than one substantive reply, or any background result, since the user's last message. One reply that already covers everything is its own rollup.
+
+A rollup is written for a cold reader who reads only this reply:
+
+- Opens with the heading `# Rollup: <topic>`.
+- Covers everything since the user's last message, plus every item they have not yet answered, however old.
+- After a compaction, rebuilds from the transcript, never the summary.
+- Inlines what a decision needs: the finding, the evidence, and the code. Long code gets the key lines plus a path to open.
+- Drops anything superseded or dead. Keep one line only if the user may still believe the old version.
+- Names any earlier statement of yours that was wrong.
+- States current truth, not the order it was discovered in.
+- Puts a section IV anchor under each item to show its origin. Never needed to decide, and never replaces inlined content.
+- Uses the FULL shape, and states what is blocked on the user last.
+
 ## Trap: a subagent's worktree deletes its own evidence
 
 A subagent run in its own worktree has that worktree removed automatically when it finishes with its branch unchanged, and every gitignored file inside goes with it, `tmp/` included. An agent that only tests, measures or probes devices commits nothing, so its scripts, logs and handoff notes vanish with no error.
