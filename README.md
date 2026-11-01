@@ -48,6 +48,81 @@ so what runs is always the commit the marketplace published — never your worki
 copy. Editing a file here changes nothing on any host until you push and re-run
 `marketplace update` ([ADR 0014](docs/adr/0014-executables-ship-as-plugin-content.md)).
 
+## Keeping sensitive values out of committed docs
+
+**The problem.** An agent does its working in a gitignored `tmp/YYYYMMDD/<topic>/`
+folder: scripts, notes, run logs. The useful part has to end up in committed docs
+or evidence, and that copy is exactly where a production host, a service account
+or a client name slips into git history.
+
+**The answer is a program plus a workflow.** The program is
+envscan `https://github.com/luutuankiet/envscan`: it reads the repo's gitignored
+`.env` (one identifying value per key) and finds those values in text, or swaps
+them for a bare `$KEY`. The workflow is the opt-in `promote-tmp` skill, which you
+run at wrap-up:
+
+```text
+/context-lab:promote-tmp tmp/YYYYMMDD/<topic>
+```
+
+```mermaid
+flowchart LR
+  T["tmp/YYYYMMDD/topic/"] --> S["envscan scan"]
+  S --> M["one menu, one approval"]
+  M --> D["dehydrate to $KEY,<br/>scan the copy clean"]
+  D --> C["commit evidence/ and pages"]
+  C --> P["pre-push hook"]
+  P --> A["repo-context-audit"]
+```
+
+1. Every file gets one of five handlings: `snapshot` (a script, or tool output a
+   page cites, copied dehydrated), `write-up` (prose rewritten as a fresh page or
+   issue, never copied), `cache` (a pointer with a rebuild command), `discard`, or
+   `refuse` (credentials, regulated data, another client's material).
+2. Every copy goes through `envscan dehydrate`, so each known value becomes a bare
+   `$KEY`, and the copy must scan clean before it is committed.
+3. You approve one menu listing every file, its handling and every value found;
+   nothing is written before that.
+4. The git `pre-push` hook (`envscan gate`) is the last net: it refuses a push that
+   still carries a known value.
+5. The skill ends by handing off to `repo-context-audit`, so what the session
+   learned reaches `AGENTS.md` and `docs/`.
+
+**A worked example, on fake values.** A `.env` holding
+`DB_HOST_A=acme-prod-db.example.internal` and two more keys, and a topic folder
+with a run log and a note. The scan finds every value and names only the keys:
+
+```text
+$ envscan scan --known-only --no-ignore tmp/20261101/db-latency
+tier: plain
+rules loaded: 3   files scanned: 2   skipped: 0 large, 0 binary, 0 non-utf8, 0 secret-named, 0 long lines
+
+LEAKS  4 hits across 3 keys (write as $KEY)
+  DB_HOST_A            strict    2  loose    0  tmp/20261101/db-latency/notes.md:4  tmp/20261101/db-latency/run.log:1
+  ACCOUNT_A            strict    1  loose    0  tmp/20261101/db-latency/run.log:1
+  CLIENT_A             strict    1  loose    0  tmp/20261101/db-latency/notes.md:3
+```
+
+The log line `connect host=acme-prod-db.example.internal user=etl-runner@...`
+dehydrates to a copy that is safe to commit:
+
+```text
+$ envscan dehydrate tmp/20261101/db-latency/run.log
+2026-11-01T09:12:03Z connect host=$DB_HOST_A user=$ACCOUNT_A
+2026-11-01T09:12:04Z query p50=41ms p95=212ms rows=18000
+2026-11-01T09:12:04Z done
+```
+
+The note is prose, so it is a `write-up`, not a copy: the scan proves a value is
+there, and the rewrite removes it. `envscan hydrate` turns a `$KEY` back into the
+real value on your own machine when you need it.
+
+**Opt-in.** It runs only when you invoke it, in a repo with a `.env`. A repo set up
+by `repo-context-audit` alone, and anyone working in it, sees no change. Why it is
+shaped this way: [ADR 0015](docs/adr/0015-tmp-promotion-copies-what-runs-and-rewrites-what-is-read.md),
+[ADR 0016](docs/adr/0016-no-outbound-gate-on-agent-tool-calls.md),
+[ADR 0017](docs/adr/0017-promotion-keeps-cited-output-and-is-opt-in.md).
+
 ## What is in here
 
 | tree | role | how it reaches a host |
