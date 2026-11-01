@@ -83,6 +83,8 @@ repository is the human's, not yours.
 
 - **Never `git add -f`, `cp` or `git mv` anything out of a private notes
   directory, and never copy a value out of one into a page.** A single `-f`
-  defeats the only control that directory ever had.
+  defeats the only control that directory ever had. The one exception is a runnable
+  file from a dated `tmp/` folder, on the operator-invoked route, after dehydration
+  and a clean scan; prose is never copied.
 - **Never hand-maintain an index.** A hand-written one silently orphans pages:
   the page still exists, nothing links to it, and nobody notices for a year.
