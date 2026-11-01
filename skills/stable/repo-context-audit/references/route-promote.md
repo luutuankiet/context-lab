@@ -7,6 +7,10 @@ scanner names the directory and its byte count; it has not opened it.
 This is a **one-way, one-time** conversion per directory. It is not a sync, not a
 backup, and not a copy.
 
+This route covers working-notes directories only. A dated `tmp/` folder gets new
+work daily and is promoted per topic folder under ADR 0015 of the repository that
+ships this skill, by a separate route the operator invokes.
+
 ## The two rules that make this a gate and not a convention
 
 **Privacy is a property of which remote, never of whether something is
@@ -117,7 +121,8 @@ Every leak found across the investigation behind this route came from **verbatim
 agent capture** — a cookie jar pasted into a handoff appendix, a raw evidence dump
 — and **none** from authored prose. Rewriting into publisher voice *is* the
 redaction boundary, because it is an **audience** boundary. There is no copy path
-here, not even for a file that looks clean.
+here, not even for a file that looks clean. The `tmp/` route copies runnable files
+after dehydration and a clean scan; prose has no copy path on either route.
 
 If the source prose carries a private notation system — internal log or task
 identifiers, section pointers into a file the reader cannot open — resolve each
@@ -141,7 +146,9 @@ prose is small and the leak vocabulary is finite and known.
 The check is **non-blocking by design**. Naming a host as inline evidence is a
 style call, not a privacy one — and this format asks for inline evidence
 everywhere else, so a check that refuses would be arguing with the format. Report
-the hits with line numbers and let the human decide.
+the hits with line numbers and let the human decide. This covers this check only;
+an outbound gate that blocks known `.env` values at the push boundary is a separate
+control.
 
 ## 8. Then the human reads
 
@@ -157,7 +164,9 @@ No standing secret scanner and no pre-commit hook ships with this. Measured at
 1.32% signal, and `gitleaks`/`trufflehog` default to git history and staged
 content — these files are *never tracked*, so a pre-commit hook by definition
 never fires on them. Standing tooling does not rescue you from the methodology
-trap; it hides it behind a green checkmark.
+trap; it hides it behind a green checkmark. This reasoning is about finding unknown
+secrets in untracked notes; it does not rule out a gate on known values at the push
+boundary.
 
 ## After
 
