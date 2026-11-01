@@ -62,7 +62,7 @@ tests/statusline/run.sh           # the dispatcher's failure modes, run not asse
 tests/gate/run.sh                 # the outbound gate shim; ENVSCAN=<a build> for the full run
 ```
 
-No CI, no other test runner. Nothing runs these for you.
+CI runs only promote-tmp and gate tests (`install-check.yml`); run the rest yourself.
 
 <!-- Standard block. Everything above belongs to this project; everything below is
      the pointer every repo laid out this way carries. -->

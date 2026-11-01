@@ -82,7 +82,7 @@ minutes if someone had told you. Three tests, all must pass:
    | rung | use when | this repo |
    |---|---|---|
    | make it a **type error** | the mistake is expressible in the type system | **none.** This is bash and markdown; there is no type system to reach for, so this rung never holds here. |
-   | make it a **test** | the mistake is an assertable behaviour | `./test-install.sh` (assertions against a throwaway `$HOME`), `./install.sh --check`, `scripts/skills-publish-gate.sh`, `scripts/gen-docs-index.sh --check`, and each skill's own `tests/run.sh`. No CI runs any of them. |
+   | make it a **test** | the mistake is an assertable behaviour | `./test-install.sh` (assertions against a throwaway `$HOME`), `./install.sh --check`, `scripts/skills-publish-gate.sh`, `scripts/gen-docs-index.sh --check`, and each skill's own `tests/run.sh`. CI (`.github/workflows/install-check.yml`) runs only the promote-tmp and gate tests; nothing runs the rest. |
    | **comment at the site** | there is exactly one line where someone could get it wrong | **this is the norm here and the rung that usually holds.** `install.sh` carries 122 comment lines against 452 total. See the header of `scripts/skills-publish-gate.sh`, which spends fifteen lines saying why each of its three checks exists — including the one `claude plugin validate` warning that is deliberate. |
    | **a doc** | the mistake can be made from any of several files, or from a file that does not exist yet | the catalogue above |
 
