@@ -1,0 +1,179 @@
+#!/usr/bin/env bash
+# Launcher for the envscan binary. Makes sure $HOME/.local/bin/envscan exists and
+# is at least ENVSCAN_MIN_VERSION, then runs it with the arguments given.
+#
+#   envscan              install or upgrade if needed, print the binary's path
+#   envscan <args...>    the same, then exec the binary with <args...>
+#
+# A present binary at or above the floor is used as it is: no network at all.
+# Otherwise the release asset for the floor version is fetched for this machine,
+# checked against the release's SHA256SUMS, and moved into place. Any failure
+# leaves no binary behind and exits 3 with a line naming what is missing, so it
+# never reads as a clean scan (0) or as leaks found (1).
+#
+# The outbound gate calls the binary directly, never this launcher, because a
+# download can outlast a hook's timeout. $HOME/.local/bin may be off PATH, so
+# callers use the absolute path this prints.
+#
+# Written for bash 3.2 under set -euo pipefail: no timeout(1), no GNU coreutils.
+#
+# ENVSCAN_RELEASE_BASE overrides where releases are fetched from; the tests point
+# it at a local server. The floor itself cannot be overridden.
+set -euo pipefail
+
+ENVSCAN_MIN_VERSION="0.1.0"
+ENVSCAN_REPO="luutuankiet/envscan"
+BASE="${ENVSCAN_RELEASE_BASE:-https://github.com/$ENVSCAN_REPO/releases/download}"
+BIN_DIR="$HOME/.local/bin"
+BIN="$BIN_DIR/envscan"
+
+die() {
+  printf 'envscan launcher: %s\n' "$*" >&2
+  exit 3
+}
+
+# The version a binary reports, or empty when it cannot run. clap prints
+# "envscan 0.1.0".
+version_of() {
+  local out
+  out=$("$1" --version 2>/dev/null) || return 0
+  out=${out##* }
+  printf '%s' "${out%%-*}"
+}
+
+# 0 when $1 >= $2, comparing dotted numbers. A non-numeric part counts as 0.
+version_ge() {
+  local -a a b
+  IFS=. read -r -a a <<<"$1"
+  IFS=. read -r -a b <<<"$2"
+  local i x y
+  for i in 0 1 2; do
+    x=${a[i]:-0}
+    y=${b[i]:-0}
+    case $x in '' | *[!0-9]*) x=0 ;; esac
+    case $y in '' | *[!0-9]*) y=0 ;; esac
+    if [ "$((10#$x))" -gt "$((10#$y))" ]; then return 0; fi
+    if [ "$((10#$x))" -lt "$((10#$y))" ]; then return 1; fi
+  done
+  return 0
+}
+
+# The release target for this machine. Both arm64 (macOS) and aarch64 (Linux)
+# name the same architecture.
+target() {
+  local os arch
+  os=$(uname -s)
+  arch=$(uname -m)
+  case $arch in
+    arm64 | aarch64) arch=aarch64 ;;
+    x86_64 | amd64) arch=x86_64 ;;
+  esac
+  # A shell under Rosetta reports x86_64 on an Apple silicon machine.
+  if [ "$os" = Darwin ] && [ "$arch" = x86_64 ] &&
+    [ "$(sysctl -n sysctl.proc_translated 2>/dev/null || true)" = 1 ]; then
+    arch=aarch64
+  fi
+  case "$os/$arch" in
+    Linux/x86_64) echo x86_64-unknown-linux-musl ;;
+    Linux/aarch64) echo aarch64-unknown-linux-musl ;;
+    Darwin/aarch64) echo aarch64-apple-darwin ;;
+    *) die "no release is built for $os $(uname -m); build envscan from source and place it at $BIN" ;;
+  esac
+}
+
+fetch() {
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL --connect-timeout 10 --max-time 300 --retry 2 -o "$2" "$1"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q -T 30 -O "$2" "$1"
+  else
+    return 127
+  fi
+}
+
+sha256_of() {
+  local out
+  if command -v sha256sum >/dev/null 2>&1; then
+    out=$(sha256sum "$1")
+  elif command -v shasum >/dev/null 2>&1; then
+    out=$(shasum -a 256 "$1")
+  else
+    return 127
+  fi
+  printf '%s' "${out%% *}"
+}
+
+TMP=""
+cleanup() {
+  if [ -n "$TMP" ]; then rm -rf "$TMP"; fi
+}
+trap cleanup EXIT
+
+install() {
+  local tgt tag asset want got line name found have
+  tgt=$(target)
+  tag="v$ENVSCAN_MIN_VERSION"
+  asset="envscan-$tag-$tgt.tar.gz"
+
+  if ! command -v sha256sum >/dev/null 2>&1 && ! command -v shasum >/dev/null 2>&1; then
+    die "cannot verify a download: neither sha256sum nor shasum is installed; envscan $ENVSCAN_MIN_VERSION is not installed at $BIN"
+  fi
+  if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
+    die "cannot download: neither curl nor wget is installed; envscan $ENVSCAN_MIN_VERSION is not installed at $BIN"
+  fi
+
+  mkdir -p "$BIN_DIR" || die "cannot create $BIN_DIR"
+  # Same directory as the destination, so the final mv is a rename.
+  TMP=$(mktemp -d "$BIN_DIR/.envscan-install.XXXXXX") || die "cannot create a temp directory in $BIN_DIR"
+
+  fetch "$BASE/$tag/SHA256SUMS" "$TMP/SHA256SUMS" ||
+    die "envscan $ENVSCAN_MIN_VERSION is not installed at $BIN, and downloading $BASE/$tag/SHA256SUMS failed (offline?)"
+  fetch "$BASE/$tag/$asset" "$TMP/$asset" ||
+    die "envscan $ENVSCAN_MIN_VERSION is not installed at $BIN, and downloading $BASE/$tag/$asset failed (offline?)"
+
+  found=""
+  while IFS= read -r line || [ -n "$line" ]; do
+    want=${line%% *}
+    name=${line##* }
+    name=${name#\*}
+    if [ "$name" = "$asset" ]; then
+      found=$want
+      break
+    fi
+  done <"$TMP/SHA256SUMS"
+  [ -n "$found" ] || die "SHA256SUMS for $tag has no entry for $asset; refusing to install"
+
+  got=$(sha256_of "$TMP/$asset") || die "computing the checksum of $asset failed; refusing to install"
+  # Compare lowercase, since a sums file may be written either way.
+  found=$(printf '%s' "$found" | tr 'A-F' 'a-f')
+  got=$(printf '%s' "$got" | tr 'A-F' 'a-f')
+  [ "$got" = "$found" ] || die "checksum mismatch for $asset (expected $found, got $got); refusing to install"
+
+  mkdir "$TMP/x"
+  tar -xzf "$TMP/$asset" -C "$TMP/x" envscan 2>/dev/null || die "$asset does not hold an envscan binary; refusing to install"
+  chmod 755 "$TMP/x/envscan"
+
+  # The binary must run here and meet the floor before it replaces anything.
+  have=$(version_of "$TMP/x/envscan")
+  [ -n "$have" ] || die "the downloaded envscan does not run on this machine ($tgt); refusing to install"
+  version_ge "$have" "$ENVSCAN_MIN_VERSION" ||
+    die "the downloaded envscan reports $have, below $ENVSCAN_MIN_VERSION; refusing to install"
+
+  mv -f "$TMP/x/envscan" "$BIN" || die "cannot move envscan into $BIN"
+  rm -rf "$TMP"
+  TMP=""
+  printf 'envscan launcher: installed envscan %s for %s at %s\n' "$have" "$tgt" "$BIN" >&2
+}
+
+current=""
+if [ -x "$BIN" ]; then current=$(version_of "$BIN"); fi
+if [ -z "$current" ] || ! version_ge "$current" "$ENVSCAN_MIN_VERSION"; then
+  install
+fi
+
+if [ "$#" -eq 0 ]; then
+  printf '%s\n' "$BIN"
+  exit 0
+fi
+trap - EXIT
+exec "$BIN" "$@"
