@@ -282,4 +282,9 @@ if [ $RC -eq 3 ] && [[ $ERR == *"no release is built for Darwin x86_64"* ]] && [
 else no "no release for machine" "rc=$RC err=$ERR"; fi
 
 printf '\n%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"
-[ "$fail" -eq 0 ]
+
+# The promotion route end to end, under the same bash.
+printf '\n== route.sh\n'
+route=0
+"$SH_BASH" "$HERE/route.sh" || route=1
+[ "$fail" -eq 0 ] && [ "$route" -eq 0 ]
