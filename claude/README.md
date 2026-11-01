@@ -20,6 +20,7 @@ conflating them is how the lab's own scaffolding leaks onto every host.
 | `settings.owned.json` | the keys Context Lab owns; merged key-level into `~/.claude/settings.json` |
 | `statusline.sh` | linked to `~/.claude/statusline.sh` |
 | `hooks/token-tracker.sh` | linked to `~/.claude/hooks/token-tracker.sh` |
+| `hooks/outbound-gate.sh` | run from the plugin root by `hooks/hooks.json` on `Bash` and GitHub MCP calls; hands the call to `envscan gate` |
 
 ## Two rules that bit before
 

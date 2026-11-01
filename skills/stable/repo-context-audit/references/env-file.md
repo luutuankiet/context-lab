@@ -6,8 +6,24 @@ names, and the real values never leave the machine.
 
 ## What goes where
 
-**If it is in `.env`, it is blocked.** An outbound gate treats every value as text
-that must not leave, without knowing what the value means.
+**If it is in `.env`, it is blocked,** with one exception below. An outbound gate
+treats every value as text that must not leave, without knowing what the value means.
+
+**The exception: a key whose `what` line ends `| match: warn` warns instead of
+blocking.** It is for a value that is also an ordinary word, such as a machine named
+after one. The key stays in `.env`, and `hydrate` and `dehydrate` treat it as usual.
+Only a whole-word hit warns; the gate names the key and lets the post through, and a
+hit never changes an exit code or stops `pre-push`. Without the marker, a value blocks.
+A warned value can still leave, so set the marker only where blocking would stop
+ordinary work.
+
+## Where the rules apply
+
+**Variables and sanitizing apply only where text is committed or published:** commits,
+pull requests, issues, comments, docs and promoted evidence. Day-to-day agent work uses
+resolved names, including replies, working notes, web searches, `curl` and MCP calls
+outside GitHub, and none of those is gated. Credentials and regulated data stay out of
+both. Hydrate a ticket before quoting it to the operator.
 
 | item | where it goes |
 |---|---|
@@ -62,6 +78,8 @@ Each key, or block of keys, has one line above it in `.env.example`:
 # what: short name of the client behind the oldest engagement | group: clients
 CLIENT_A=
 ```
+
+Append `| match: warn` to the line to make a hit on that key warn instead of block.
 
 `what` is the question asked during a rebuild, so it must let the operator recognise
 the value without naming it. `git log` holds who added a key, when and why.
