@@ -49,6 +49,17 @@ _Avoid_: Redaction, scrubbing
 
 ### Sensitive items
 
+**Candidate**:
+Text that looks like an identifier and is not yet in `.env`.
+
+**Plain tier**:
+The scanner's local mode, which matches known values, lists candidates and sends nothing.
+_Avoid_: Offline mode
+
+**Judgement tier**:
+The scanner's mode that sends flagged lines to a hosted decision model, which sorts candidates. It runs only after a saved choice on that machine.
+_Avoid_: AI mode, live scan
+
 **Variable**:
 A sensitive item that is a stable literal and so belongs in `.env`.
 
