@@ -43,6 +43,10 @@ _Avoid_: Scratch, leftovers
 A deliberate, operator-visible decision that a file will not be kept.
 _Avoid_: Cleanup, skip
 
+**Promotion record**:
+The scanner's per-machine entry saying how one file was handled. No entry means not promoted.
+_Avoid_: Ledger, verdict cache
+
 **Dehydration**:
 Replacing identifying values in a file with variable names held in a local, gitignored `.env`.
 _Avoid_: Redaction, scrubbing
