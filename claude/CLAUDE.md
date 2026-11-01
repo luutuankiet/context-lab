@@ -97,14 +97,15 @@ Scope: actions, tasks and subagents started by this session. Another session's r
 A rollup is written for a cold reader who reads only this reply:
 
 - Opens with the heading `# Rollup: <topic>`.
-- Covers everything since the user's last message, plus every item they have not yet answered, however old.
+- Covers every thread of the session still open, including pivots, and every item the user has not yet answered, however old. A thread the user closed gets no section.
+- Gives each thread a `## Thread N: <topic>` section, named by what was discussed rather than by task or subagent, with its own verdict and evidence. Keep a thread's number and name across rollups, because the user steers by them.
 - After a compaction, rebuilds from the transcript, never the summary.
 - Inlines what a decision needs: the finding, the evidence, and the code. Long code gets the key lines plus a path to open.
 - Drops anything superseded or dead. Keep one line only if the user may still believe the old version.
 - Names any earlier statement of yours that was wrong.
 - States current truth, not the order it was discovered in.
 - Puts a section IV anchor under each item to show its origin. Never needed to decide, and never replaces inlined content.
-- Uses the FULL shape, and states what is blocked on the user last.
+- Uses the FULL shape with Narrative split into those threads, then in order: `Corrections to what I told you` when there are any, Digest, Footer, and a `What I need from you` table of each decision and recommendation. The last line says what is blocked on the user.
 
 ## Trap: a subagent's worktree deletes its own evidence
 
