@@ -9,6 +9,12 @@ set -euo pipefail
 env_file="$(cd "$(dirname "$0")/.." && pwd)/.env"
 
 hosts="$(sed -n 's/^DEPLOY_HOST_\([0-9][0-9]*\)="\{0,1\}\([^"]*\)"\{0,1\}$/\1 \2/p' "$env_file" | sort -n | cut -d' ' -f2-)"
+case "$hosts" in
+  *' '*|*$'\t'*)
+    echo "A DEPLOY_HOST_<number> key holds more than one value: use one host per key" >&2
+    exit 2
+    ;;
+esac
 set -- $hosts
 if [ "$#" -eq 0 ]; then
   echo "No DEPLOY_HOST_<number>=<ssh-alias> keys with a value in $env_file" >&2
