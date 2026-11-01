@@ -1,20 +1,28 @@
 ---
 name: promote-tmp
-description: Promote a gitignored tmp/YYYYMMDD/<topic>/ folder into committed evidence, docs or issues, with every copy dehydrated and scanned clean, and record each file so the folder can be cleared safely. Use when the operator asks to promote, keep or clear a tmp/ topic folder, or before deleting one.
+description: Promote a gitignored tmp/YYYYMMDD/<topic>/ folder into committed evidence, docs or issues, with every copy dehydrated and scanned clean, and record each file so the folder can be cleared safely. Use when the operator asks to promote, keep or clear a tmp/ topic folder, before deleting one, or when they wrap up a session that left work in tmp/; it hands off to repo-context-audit at the end.
 ---
 
 # Promote a tmp/ topic folder
 
+**Opt-in.** This runs only when the operator invokes it, in a repo with a `.env`. A
+repo set up by repo-context-audit alone works exactly as before without it.
+
 Each file in `tmp/YYYYMMDD/<topic>/` leaves as one of five handlings, decided by
-whether it is **run** or **read** (ADR 0015 in the context-lab repo):
+whether it is **run**, **read as evidence** or **read as prose** (ADRs 0015 and 0017
+in the context-lab repo):
 
 | handling | for | what is committed | `--ref` |
 |---|---|---|---|
-| `snapshot` | authored and runnable: a script, a fixture generator, an answer key | a dehydrated copy in `evidence/YYYYMMDD-<topic>/` | commit SHA |
+| `snapshot` | authored and runnable: a script, a fixture generator, an answer key; **or tool output a page cites as evidence**: a run log, a build or test result | a dehydrated copy in `evidence/YYYYMMDD-<topic>/` | commit SHA |
 | `write-up` | authored prose: notes, a handoff | a fresh page, decision or issue; never a copy | commit SHA or `issue:<n>` |
 | `cache` | rebuildable or passed through: downloads, generated output, vendor text | a pointer entry in the evidence `README.md` | commit SHA |
-| `discard` | raw tool output, logs, scanner output, unreproducible paid output | nothing | none |
+| `discard` | tool output nothing cites, scanner output | nothing | none |
 | `refuse` | regulated data, credentials, another client's material | nothing | none |
+
+**Tool output is read, never run**, so a snapshot of it only has to be safe to read:
+every identifying value in it becomes a `$KEY` or is rewritten away, and the copy
+scans clean. Prose still has no copy path.
 
 A data file (`.csv .tsv .jsonl .ndjson .xlsx .xls .parquet .sqlite .db .avro .orc
 .hyper .twbx .tdsx`) is never opened by you and never snapshot: cache, discard or
@@ -74,6 +82,13 @@ may be off `PATH`.
    (an existing `$KEY`, or a new neutral key such as `CLIENT_B`), **rewrite**, or
    **refuse**. Read file names as well as scores: a durable file can score 0. Raw
    scanner output is a row with handling `discard`, shown as one.
+
+   A tool-output row proposed as `snapshot` needs more than the scan: **read the
+   whole file yourself.** The judge does not read every extension (`.log` and
+   `.json` among them), so a host, account, path or person not yet in `.env` gets
+   no candidate. List each one you find under the row as a new **variable** or a
+   **rewrite**. Output too long to read, or holding regulated data, is `discard` or
+   `refuse`, never a snapshot.
 
 5. **Stop for approval. One approval covers one menu.** End your turn and wait for
    the operator. Change nothing until they approve this exact menu. When they
@@ -135,7 +150,9 @@ may be off `PATH`.
 
      A dehydrated script reruns through a pipe, so no command cites `tmp/`:
      `envscan hydrate evidence/YYYYMMDD-<topic>/<name> | bash -s` (or `| python3 -`).
-     Write the original location without the `tmp/` prefix, as above.
+     For tool output, `rebuild:` is the command that produced it, or `none: a
+     recorded run` when a rerun would differ. Write the original location without
+     the `tmp/` prefix, as above.
    - Rewrite every tracked citation of the topic folder's files (the `inbound`
      column) to the evidence path or the page that replaced it.
 
@@ -168,6 +185,12 @@ may be off `PATH`.
     `safe_to_clear` stays `false` until the operator merges the branch into the
     default branch; that is correct. You never delete the folder: clearing it is
     the operator's call, after they see `refused_deleted_on_clear`.
+
+12. **Wrap up the session's context.** Promotion keeps the evidence; it does not
+    decide what the repo should now say. Invoke the `context-lab:repo-context-audit`
+    skill next and follow its route, so what this session learned reaches
+    `AGENTS.md`, `docs/` or an issue. It ends in its own menu, so this is a second
+    approval, not a continuation of the first.
 
 ## Proof
 
