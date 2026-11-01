@@ -31,6 +31,10 @@ _Avoid_: Rewrite, port
 A committed record of something left in `tmp/`, including the command that rebuilds it.
 _Avoid_: Reference, link
 
+**Reference clone**:
+A private repository cloned locally with permission so it can be read, recorded by a pointer and never committed.
+_Avoid_: Reference repo, vendored copy
+
 **Cache**:
 Anything rebuildable that stays in `tmp/` and is never committed.
 _Avoid_: Scratch, leftovers

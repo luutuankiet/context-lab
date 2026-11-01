@@ -69,6 +69,7 @@ repository is the human's, not yours.
 | [references/sort-and-ladder.md](references/sort-and-ladder.md) | setup, promote, wrapup |
 | [references/topology-check.md](references/topology-check.md) | the second gate of promote only |
 | [references/env-file.md](references/env-file.md) | adding, naming, retiring or rebuilding `.env` entries, and before a commit that reintroduces a retired value |
+| [references/reference-clones.md](references/reference-clones.md) | recording a private repo cloned with permission, citing its code, or rebuilding it on a new machine |
 
 ## Report in this shape
 

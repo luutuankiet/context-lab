@@ -98,3 +98,11 @@ structure for an agent to judge from, so expect extra menu questions there.
 
 **The scanner gains state.** How it stores this belongs with "Scan cadence and
 verdict cache", which already owns what the scanner remembers between runs.
+
+## Reference clones
+
+A private repo cloned with permission spans many topics and outlives them, so a frozen
+evidence entry does not fit it. Its pointer is one row on a maintained page, with no
+source pin or capture time: each citation carries its own SHA, and a full clone can
+read them all. The rebuild command stays mandatory. See
+`skills/stable/repo-context-audit/references/reference-clones.md`.
