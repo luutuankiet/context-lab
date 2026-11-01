@@ -19,6 +19,9 @@ host this operator works on. Bash and markdown; no build, no runtime.
   makes it fire twice per event, silently. The two edits are one commit.
 - **Key material is blocked by pattern, not path**, and an ignore line is inert
   against a file already tracked at HEAD. The repair is `git rm --cached`.
+- **Published text names one specific sensitive thing by a bare `$KEY`, never by a
+  prose description.** `envscan hydrate` resolves it; the scanner cannot catch a
+  stand-in (`skills/stable/repo-context-audit/references/env-file.md`).
 - **Write bash for the oldest interpreter in the fleet, 3.2**, under `set -euo
   pipefail`. No `timeout(1)`, no GNU coreutils — the oldest host has neither.
 - **This repo contributes one statusline segment; it does not own the line.** An
