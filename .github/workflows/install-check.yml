@@ -1,0 +1,60 @@
+# The envscan launcher and the promote-tmp tests on real machines, under
+# /bin/bash: bash 3.2 on macOS, the distro bash on Linux. The launcher installs
+# the real release from an empty $HOME on each, so every published target is
+# downloaded, verified and run at least once.
+name: install-check
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - skills/stable/promote-tmp/**
+      - claude/hooks/outbound-gate.sh
+      - tests/gate/**
+      - .github/workflows/install-check.yml
+
+permissions:
+  contents: read
+
+jobs:
+  install-check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-24.04-arm, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: /bin/bash -eo pipefail {0}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Machine and bash
+        run: |
+          uname -sm
+          /bin/bash --version | sed -n 1p
+          # Scripts start with `#!/usr/bin/env bash` and the route test calls
+          # `bash` by name, so put /bin/bash first on PATH: on macOS that keeps
+          # every nested script on 3.2 instead of a newer bash from Homebrew.
+          mkdir -p "$RUNNER_TEMP/bash-first"
+          ln -s /bin/bash "$RUNNER_TEMP/bash-first/bash"
+          echo "$RUNNER_TEMP/bash-first" >>"$GITHUB_PATH"
+
+      - name: Launcher installs the real release from an empty HOME
+        run: |
+          export HOME="$RUNNER_TEMP/empty-home"
+          mkdir -p "$HOME"
+          bash --version | sed -n 1p
+          /bin/bash skills/stable/promote-tmp/tests/live-install.sh "$RUNNER_TEMP/envscan-bin/envscan"
+
+      - name: Launcher tests and the promotion route
+        run: |
+          export HOME="$RUNNER_TEMP/empty-home-2"
+          mkdir -p "$HOME"
+          ENVSCAN_BIN="$RUNNER_TEMP/envscan-bin/envscan" /bin/bash skills/stable/promote-tmp/tests/run.sh
+
+      - name: Outbound gate shim with the installed binary
+        run: |
+          export HOME="$RUNNER_TEMP/empty-home-3"
+          mkdir -p "$HOME"
+          ENVSCAN="$RUNNER_TEMP/envscan-bin/envscan" /bin/bash tests/gate/run.sh
