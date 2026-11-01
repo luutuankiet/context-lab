@@ -24,7 +24,7 @@ the link into the tracked file, so `git status` in the clone reported it. That
 argument assumed the clone was the thing a host executes. It has not been for
 some time, and the assumption failed in both directions at once:
 
-- Three of four hosts had links resolving into a personal working checkout,
+- Three of four hosts had links resolving into a local working checkout,
   running whatever commit that checkout happened to sit on — in one case a
   commit two behind the marketplace, in another an uncommitted edit that had
   never taken effect because the memory import resolved elsewhere.

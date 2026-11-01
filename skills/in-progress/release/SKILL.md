@@ -1,6 +1,6 @@
 ---
 name: release
-description: "Ship a release for my personal projects (github luutuankiet): draft notes, tag, publish."
+description: "Ship a release for my own projects (github luutuankiet): draft notes, tag, publish."
 argument-hint: "[patch|minor|major] [repo] or [vX.Y.Z]"
 ---
 

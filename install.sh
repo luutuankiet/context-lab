@@ -57,7 +57,7 @@ done
 #   enabledMcpjsonServers — ["proxy"], a dangling reference to a .mcp.json
 #   server that no longer exists; the proxy is registered at account level now.
 #   agent — "gsd-lite", the retired default agent. Found live at user tier on
-#   joon during the fleet rollout, pinning every session there to a 10 KB fork
+#   a work dev container during the fleet rollout, pinning every session there to a 10 KB fork
 #   of an agent file this effort retires. It is not in sandbox-cc, so freezing
 #   that repo does not reach it. Unset rather than owned: the target state is no
 #   agent default at all, and agents are skills.
@@ -77,7 +77,7 @@ SETTINGS_UNSET=(
 REQUIRED_BINS=(jq awk sed git curl)
 # Wanted, but nothing here hard-fails without them.
 OPTIONAL_BINS=(flock sha256sum node gh rg)
-# Deliberately absent: bc. joon has never had it, and both consumers
+# Deliberately absent: bc. One host has never had it, and both consumers
 # (the statusline contributor and token-tracker.sh) were moved to awk precisely
 # so that this installer never has to install a package manager's worth of
 # dependency.
@@ -261,7 +261,7 @@ install_one_plugin() {
   # reported failure, because nothing announces it.
   # No `-y`. The flag only matters for a marketplace-declared *command* install,
   # which neither of these is -- and it does not exist at all on the oldest CLI in
-  # the fleet (2.1.81 on personal), where passing it fails the install outright
+  # the fleet (2.1.81 on the host with the oldest CLI), where passing it fails the install outright
   # with `error: unknown option '-y'`.
   local out
   if out=$(claude plugin install "$id" 2>&1); then
@@ -272,7 +272,7 @@ install_one_plugin() {
 
   # A stale marketplace cache reports the plugin as "not found in marketplace"
   # rather than as a fetch error, so refresh once and retry before believing it.
-  # That was the real cause on all three hosts rolled out after thinkpad.
+  # That was the real cause on all three hosts rolled out after the homelab server.
   warn "refreshing the marketplace cache and retrying once"
   claude plugin marketplace update "$marketplace" >/dev/null 2>&1 || true
   if out=$(claude plugin install "$id" 2>&1); then
@@ -569,7 +569,7 @@ shell_exports() {
   done
 
   if [ ${#missing[@]} -eq 0 ]; then
-    # Set outside our block is fine -- thinkpad has had these hand-written
+    # Set outside our block is fine -- the homelab server has had these hand-written
     # since long before this installer existed. Adopting them into the managed
     # block is a manual one-liner, not something to do behind someone's back in
     # their login shell.

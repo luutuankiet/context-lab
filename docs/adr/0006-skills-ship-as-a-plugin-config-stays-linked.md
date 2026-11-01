@@ -37,7 +37,7 @@ A marketplace whose source is a **directory** is not copied.
 and a plugin declared `"source": "./"` inside it resolves to that same clone. A
 session's skill base directory is therefore
 `~/dev/context-lab/skills/stable/<skill>` — the tracked file. Verified three ways
-on thinkpad:
+on the homelab server:
 
 | test | result |
 |---|---|
@@ -63,7 +63,7 @@ plugin update` compares the declared version and does **nothing** when it has no
 moved — so a forgotten bump leaves every host's recorded state frozen while every
 command reports success. With no version key the plugin's version *is the source
 commit sha*, so the recorded state tracks the clone by construction. Verified both
-ways on thinkpad: an edit under a static `0.1.0` did not register, and the same
+ways on the homelab server: an edit under a static `0.1.0` did not register, and the same
 edit versionless installed as `ea8bf49fd432`.
 
 ## What this costs, honestly
