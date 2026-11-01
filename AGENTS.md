@@ -59,10 +59,9 @@ scripts/skills-publish-gate.sh    # symlink ban + name/dir match + manifest vali
 scripts/gen-docs-index.sh --check # fail if any generated index is stale
 skills/stable/*/tests/run.sh      # a skill's own regression tests, where it has them
 tests/statusline/run.sh           # the dispatcher's failure modes, run not asserted
-tests/gate/run.sh                 # the outbound gate shim; ENVSCAN=<a build> for the full run
 ```
 
-CI runs only promote-tmp and gate tests (`install-check.yml`); run the rest yourself.
+CI runs only the promote-tmp tests (`install-check.yml`); run the rest yourself.
 
 <!-- Standard block. Everything above belongs to this project; everything below is
      the pointer every repo laid out this way carries. -->
