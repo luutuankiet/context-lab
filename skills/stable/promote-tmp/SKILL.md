@@ -64,7 +64,8 @@ may be off `PATH`.
 
    One row per `none` or `changed` file: `inbound state sha256 kind path`, most
    cited first. Empty output means every file is recorded: go to step 11. If a move
-   changed tracked files, run steps 7 to 9 for them first.
+   changed tracked files, run steps 7 to 9 for them first, and leave the evidence
+   folder out of step 9's `git add`, since none exists.
 
    **Tree rows come first.** A directory of 200 or more unrecorded files
    (`MENU_TREE_MIN`) folds to `inbound none - tree path files`, and while any tree
@@ -103,17 +104,17 @@ may be off `PATH`.
    file is unscanned, never clean. Exit 3 with no JSON is an error: stop. The tier is
    the machine's setting; leave it.
 
-   When either report's `skipped.binary` or `skipped.secret_named` is above 0, find
-   which rows they are: scan each `text` row alone. `--known-only` keeps this off the
-   judge whatever the tier.
+   When either report's `skipped.binary`, `skipped.secret_named` or `skipped.non_utf8`
+   is above 0, find which rows they are: scan each `text` row alone. `--known-only`
+   keeps this off the judge whatever the tier.
 
    ```bash
    <envscan> scan --known-only --no-ignore --json <file>
    ```
 
-   A row whose own report shows either count above 0 (it exits 3, nothing scanned) is
-   data from here on: draw it as kind `data`, never open or snapshot it, and name it to
-   the operator.
+   A row whose own report shows any of those counts above 0 (it exits 3, nothing
+   scanned) is data from here on: draw it as kind `data`, never open or snapshot it,
+   and name it to the operator.
 
    Read the report's tier label: a `plain (fallback...)` report exits 0, so report it
    as "not judged", never as clean. Read the `unjudged` list: those values got no
@@ -202,7 +203,7 @@ may be off `PATH`.
    - Rewrite every tracked citation of the topic folder's files (the `inbound`
      column) to the evidence path or the page that replaced it.
    - **A moved tree's citations** take the form `$IMAGE_A@<image digest>:<path>:<line>`.
-     Find them with `git grep --untracked -n -F -e <dir>`, because the menu's count
+     Find them with `git grep --untracked -n -F -e "<dir>"`, because the menu's count
      hides locations. Rewrite only `<dir>` followed by `/` or a non-path character: a
      prefix rewrite turns sibling `<dir>-notes.md` into a broken citation.
 
