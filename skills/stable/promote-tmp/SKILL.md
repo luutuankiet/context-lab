@@ -28,7 +28,8 @@ A data file (`.csv .tsv .jsonl .ndjson .xlsx .xls .parquet .sqlite .db .avro .or
 .hyper .twbx .tdsx`) is never opened by you and never snapshot: cache, discard or
 refuse. So is anything envscan cannot scan: over 2 MB (the menu marks it `data`),
 binary or secret-named. The scan report gives the last two as counts only
-(`skipped.binary`, `skipped.secret_named`), so report those counts to the operator.
+(`skipped.binary`, `skipped.secret_named`), and such a file reads `text` on the menu
+until step 3 finds it.
 A nested clone or an extracted tree is moved to `tmp/refs/<key>/`, outside the topic
 folder, not promoted.
 
@@ -62,16 +63,18 @@ may be off `PATH`.
    ```
 
    One row per `none` or `changed` file: `inbound state sha256 kind path`, most
-   cited first. Empty output means every file is recorded: go to step 11.
+   cited first. Empty output means every file is recorded: go to step 11. If a move
+   changed tracked files, run steps 7 to 9 for them first.
 
    **Tree rows come first.** A directory of 200 or more unrecorded files
    (`MENU_TREE_MIN`) folds to `inbound none - tree path files`, and while any tree
    folds the menu prints only tree and clone rows. Propose each as a move, showing
    its path, file count and citations, and stop for approval. An operator's decline
-   becomes `--expand <dir>`, which keeps that whole subtree row by row. After approval:
+   becomes `--expand <dir>`, which keeps that whole subtree row by row. It is stateless,
+   so keep passing it on every re-run, step 5's included. After approval:
 
    ```bash
-   [ ! -e tmp/refs/<key> ] && mkdir -p tmp/refs && mv <dir> tmp/refs/<key>
+   [ ! -e "tmp/refs/<key>" ] && mkdir -p tmp/refs && mv "<dir>" "tmp/refs/<key>"
    ```
 
    Move the whole directory, never a file list: status cannot see a tree's symlinks or
@@ -100,6 +103,18 @@ may be off `PATH`.
    file is unscanned, never clean. Exit 3 with no JSON is an error: stop. The tier is
    the machine's setting; leave it.
 
+   When either report's `skipped.binary` or `skipped.secret_named` is above 0, find
+   which rows they are: scan each `text` row alone. `--known-only` keeps this off the
+   judge whatever the tier.
+
+   ```bash
+   <envscan> scan --known-only --no-ignore --json <file>
+   ```
+
+   A row whose own report shows either count above 0 (it exits 3, nothing scanned) is
+   data from here on: draw it as kind `data`, never open or snapshot it, and name it to
+   the operator.
+
    Read the report's tier label: a `plain (fallback...)` report exits 0, so report it
    as "not judged", never as clean. Read the `unjudged` list: those values got no
    verdict. A specific shape tagged rejected (`ip`, `email`, `home-path`, `account-id`,
@@ -123,7 +138,7 @@ may be off `PATH`.
 
 5. **Stop for approval. One approval covers one menu.** End your turn and wait for
    the operator. Change nothing until they approve this exact menu. When they
-   approve, rerun step 2: if any digest differs from the menu, or a row was edited
+   approve, rerun step 2 with the same `--expand` flags: if any digest differs from the menu, or a row was edited
    or added, draw the menu again and stop again.
 
 6. **Record discards and refusals.**
@@ -233,7 +248,8 @@ may be off `PATH`.
     A folder that held only a tree can never read `true`. Status gives exit 0,
     `"files": []`, `"safe_to_clear": false` and the reason `the folder holds no
     regular files`; if the directory is gone too, it exits 3 with `No such file or
-    directory`. Explain this and report the folder as finished.
+    directory`. Explain this and report the folder as finished, once anything its move
+    changed has been through steps 7 to 9 (step 2).
 
 12. **Wrap up the session's context.** Promotion keeps the evidence; it does not
     decide what the repo should now say. Invoke the `context-lab:repo-context-audit`

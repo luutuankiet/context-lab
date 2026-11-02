@@ -54,7 +54,7 @@ fill() { mkdir -p "$1"; i=0; while [ "$i" -lt "$2" ]; do printf 'x%s\n' "$i" >"$
 topic() { T="tmp/20990101/$1"; mkdir -p "$T"; }
 menu() { bash "$P" "$E" "$@"; }
 rows() { grep -c . || true; }
-# The path goes through ENVIRON: BSD awk's -v drops the backslash from one holding \s.
+# The path goes through ENVIRON: every awk processes escapes in -v, which eats a backslash.
 inb() { printf '%s\n' "$1" | INB_PATH=$2 awk -F '\t' '$5 == ENVIRON["INB_PATH"] {print $1}'; }
 digest() { "$E" promotion status "$1" --json | awk -v p="$2" 'index($0, "\"path\": \"" p "\"") {f = 1; next} f && /sha256/ {gsub(/[",]/, "", $2); print $2; exit}'; }
 record() { "$E" promotion add "$2" --sha256 "$(digest "$1" "$2")" --handling discard >/dev/null; }
@@ -118,6 +118,11 @@ out=$(menu "$T" --expand "$T/big/a" --expand "$T/big/c")
 eq "clone: declining both prints 430 files, x.txt, the clone" 432 "$(printf '%s\n' "$out" | rows)"
 topic cloneonly; fill "$T/d" 5; mkdir -p "$T/d/vendor"; git -C "$T/d/vendor" init -q .
 eq "clone: no tree, normal rows with the clone among them" 6 "$(menu "$T" | rows)"
+
+topic clonedeep; fill "$T/big/a" 210; mkdir -p "$T/big/x/vendor"; git -C "$T/big/x/vendor" init -q .
+eq "clone: two levels below still blocks the tree above it" "$T/big/a 210" "$(menu "$T" | awk -F '\t' '$4 == "tree" {print $5, $6}')"
+topic datacount; mkdir -p "$T/d"; for i in 1 2 3 4 5; do printf 'r\n' >"$T/d/r$i.csv"; done
+eq "threshold: data-extension files count toward a fold" "0${TAB}none${TAB}-${TAB}tree${TAB}$T/d${TAB}5" "$(MENU_TREE_MIN=5 menu "$T")"
 
 # ---- A recorded or changed file blocks its ancestors.
 topic rec; fill "$T/big/s" 219; printf 'one\n' >"$T/big/one.txt"; record "$T" "$T/big/one.txt"

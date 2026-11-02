@@ -88,7 +88,8 @@ MENU_REL=$rel MENU_MIN=$min MENU_EXPAND="$W/expand" MENU_PATTERNS="$W/patterns" 
     }
   }
   function unjson(s,    out, k) {
-    # The status JSON escapes a backslash and a quote; the path on disk has neither.
+    # Decodes only an escaped backslash and quote. Any other escape (\\t, \\u0001) just
+    # loses its backslash, so that path reads wrong and a later mv or promotion add fails.
     out = ""
     while ((k = index(s, "\\")) > 0) {
       out = out substr(s, 1, k - 1) substr(s, k + 1, 1)
@@ -119,7 +120,6 @@ MENU_REL=$rel MENU_MIN=$min MENU_EXPAND="$W/expand" MENU_PATTERNS="$W/patterns" 
         rest = substr(rest, k + 1)
         blocked[d] = 1
       }
-      blocked[line] = 1
     }
     close(file)
   }
@@ -152,7 +152,6 @@ MENU_REL=$rel MENU_MIN=$min MENU_EXPAND="$W/expand" MENU_PATTERNS="$W/patterns" 
         if (count[dirs[j]] >= min && !(dirs[j] in blocked)) {
           if (!(dirs[j] in tree)) trees++
           tree[dirs[j]] = 1
-          folded[i] = 1
           break
         }
       }

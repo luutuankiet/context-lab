@@ -245,7 +245,7 @@ rows() { grep -c .; }
 # succeeds and nests the tree one level down.
 move_tree() { [ ! -e "tmp/refs/$2" ] && mkdir -p tmp/refs && mv "$1" "tmp/refs/$2"; }
 
-grep -qF '[ ! -e tmp/refs/<key> ] && mkdir -p tmp/refs && mv <dir> tmp/refs/<key>' "$SKILL" \
+grep -qF '[ ! -e "tmp/refs/<key>" ] && mkdir -p tmp/refs && mv "<dir>" "tmp/refs/<key>"' "$SKILL" \
   && ok "the move tested here is the one SKILL.md prescribes" || no "SKILL.md move command"
 
 M=tmp/20261101/mixed
@@ -337,6 +337,56 @@ hits=$(step9)
   && ok "step 9 fails a path inside a tree, even on the reference page" || no "step 9 on the page" "$hits"
 git reset -q
 rm -f docs/c2-blind.md untracked.md
+
+# A tree path can hold a space; the prescribed line quotes it.
+S=tmp/20261101/spaced
+fill "$S/big image" 200
+move_tree "$S/big image" "img s"; rc=$?
+[ $rc -eq 0 ] && [ ! -e "$S/big image" ] && [ -f "tmp/refs/img s/f199.txt" ] \
+  && ok "the move takes a tree path holding a space" || no "spaced move" "rc=$rc"
+
+# Step 3: a binary or secret-named file reads text on the menu; the counts send the agent
+# to scan each text row alone, off the judge, and those rows become data.
+B=tmp/20261101/unscannable
+mkdir -p "$B"
+printf 'k\n' >"$B/id_rsa"; printf 'a\000b\n' >"$B/b.bin"; printf 'plain\n' >"$B/n.md"
+grep -qF '<envscan> scan --known-only --no-ignore --json <file>' "$SKILL" \
+  && ok "the locating scan tested here is the one SKILL.md prescribes" || no "SKILL.md locating scan"
+m=$(bash "$SCRIPTS/menu.sh" "$E" "$B")
+[ "$(printf '%s\n' "$m" | awk -F '\t' '$4 == "text"' | rows)" -eq 3 ] \
+  && ok "the binary and secret-named files read text on the menu" || no "unscannable rows" "$m"
+s=$("$E" scan --known-only --no-ignore --json "$B" 2>/dev/null)
+[[ $s == *'"binary": 1'* ]] && [[ $s == *'"secret_named": 1'* ]] \
+  && ok "the folder scan gives both as counts" || no "unscannable counts" "$s"
+found=""
+while IFS= read -r f; do
+  s=$("$E" scan --known-only --no-ignore --json "$f" 2>/dev/null)
+  if [[ $s != *'"tier": "plain"'* ]]; then no "locating scan tier" "$f $s"; fi
+  if [[ $s != *'"binary": 0'* ]] || [[ $s != *'"secret_named": 0'* ]]; then found="$found ${f##*/}"; fi
+done <<EOF
+$(printf '%s\n' "$m" | awk -F '\t' '$4 == "text" {print $5}')
+EOF
+[ "$found" = " b.bin id_rsa" ] \
+  && ok "scanning each text row alone finds the two, and leaves the plain file" || no "locating scan" "$found"
+
+# A folder that held only a tree: the menu is empty, yet the move left tracked edits that
+# steps 7 to 9 must still commit and check.
+OC=tmp/20261101/onlycited
+fill "$OC/image" 200
+printf 'see %s/image/f1.txt\n' "$OC" >docs/oc.md
+git add docs/oc.md; git commit -qm oc
+move_tree "$OC/image" img-oc
+printf 'see $IMAGE_OC@sha256:beef:f1.txt:1\n' >docs/oc.md
+m=$(bash "$SCRIPTS/menu.sh" "$E" "$OC"); rc=$?
+d=$(git status --porcelain -- docs/oc.md)
+[ $rc -eq 0 ] && [ -z "$m" ] && [ -n "$d" ] \
+  && ok "an empty menu can still leave a move's rewrite uncommitted" || no "only-tree edit" "rc=$rc [$m] [$d]"
+grep -qF 'changed tracked files, run steps 7 to 9 for them first' "$SKILL" \
+  && ok "SKILL.md sends that case through steps 7 to 9 before step 11" || no "SKILL.md empty-menu sentence"
+git switch -q -c promote/onlycited main
+git add -- docs/oc.md; git commit -qm "Rewrite the moved tree's citation"
+[ -z "$(git status --porcelain -- docs/oc.md)" ] && [ -z "$(git grep -nF "$OC/" -- docs/oc.md)" ] \
+  && ok "steps 7 to 9 commit it, and no citation of the folder is left" || no "only-tree commit"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

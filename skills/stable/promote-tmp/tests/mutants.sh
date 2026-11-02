@@ -57,6 +57,8 @@ run expand-refolds-children -e 's/if (dirs\[j\] in expanded) break/if (0) break/
 run clones-hidden-beside-trees -e 's/if (H\[i\] != "-" || S\[i\] == "recorded") continue/continue/'
 run size-not-data -e 's/if (p in large) return "data"/if (0) return "data"/'
 run json-escapes-kept -e 's/path = unjson(substr(\$0, 16, length(\$0) - 17))/path = substr($0, 16, length($0) - 17)/'
+run clone-blocks-parent-only -e 's/if (H\[i\] == "-" || S\[i\] != "none") blocked\[dirs\[j\]\] = 1/if (H[i] == "-" \&\& j == depth || S[i] != "none") blocked[dirs[j]] = 1/'
+run data-extension-not-counted -e 's/else count\[dirs\[j\]\]++/else if (kind(P[i]) != "data") count[dirs[j]]++/'
 
 printf '\n%d caught, %d not\n' "$caught" "$missed"
 [ "$missed" -eq 0 ]
