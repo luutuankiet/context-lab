@@ -234,5 +234,159 @@ if [ $rc -eq 0 ] && [ "$out" = "$(cat "$R/$T/fixture.txt")" ]; then
   ok "fresh checkout: the snapshot's rebuild command reproduces the cached fixture"
 else no "rebuild" "cmd=$cmd rc=$rc out=$out"; fi
 
+# ---- Folded trees: moved whole before the scan, then the normal route. Each case has
+# its own topic folder, so the row counts above stay as they are. Past the operator's
+# merge above, so every case runs on main.
+cd "$R"
+SKILL="$HERE/../SKILL.md"
+fill() { mkdir -p "$1"; i=0; while [ "$i" -lt "$2" ]; do printf 'x%s\n' "$i" >"$1/f$i.txt"; i=$((i + 1)); done; }
+rows() { grep -c .; }
+# The move SKILL.md prescribes. The guard is load-bearing: mv into an existing directory
+# succeeds and nests the tree one level down.
+move_tree() { [ ! -e "tmp/refs/$2" ] && mkdir -p tmp/refs && mv "$1" "tmp/refs/$2"; }
+
+grep -qF '[ ! -e "tmp/refs/<key>" ] && mkdir -p tmp/refs && mv "<dir>" "tmp/refs/<key>"' "$SKILL" \
+  && ok "the move tested here is the one SKILL.md prescribes" || no "SKILL.md move command"
+
+M=tmp/20261101/mixed
+fill "$M/image" 200
+ln -s f0.txt "$M/image/link"
+mkdir "$M/image/empty"
+printf '# Loose notes\n' >"$M/notes.md"
+m=$(bash "$SCRIPTS/menu.sh" "$E" "$M"); rc=$?
+[ $rc -eq 0 ] && [ "$m" = "0	none	-	tree	$M/image	200" ] \
+  && ok "first menu shows only the tree row, with its file count" || no "first menu tree row" "rc=$rc
+$m"
+n=$(bash "$SCRIPTS/menu.sh" "$E" "$M" --expand "$M/image" | rows)
+[ "$n" -eq 201 ] && ok "--expand declines the fold: every file is a row" || no "expand declines" "$n"
+
+mkdir -p tmp/refs/taken
+move_tree "$M/image" taken; rc=$?
+[ $rc -ne 0 ] && [ -d "$M/image" ] && [ ! -e tmp/refs/taken/image ] \
+  && ok "the move refuses a target that exists, and nothing moved" || no "target exists" "rc=$rc"
+
+git check-ignore -q tmp/refs/img-m && ok "tmp/refs/ is ignored" || no "tmp/refs ignored"
+move_tree "$M/image" img-m; rc=$?
+if [ $rc -eq 0 ] && [ ! -e "$M/image" ] && [ -f tmp/refs/img-m/f199.txt ] && [ -L tmp/refs/img-m/link ] && [ -d tmp/refs/img-m/empty ]; then
+  ok "the tree moves whole, its symlink and empty directory included"
+else no "whole move" "rc=$rc"; fi
+
+m=$(bash "$SCRIPTS/menu.sh" "$E" "$M"); rc=$?
+if [ $rc -eq 0 ] && [ "$(printf '%s\n' "$m" | rows)" -eq 1 ] && [[ $m == "0	none	"*"	text	$M/notes.md" ]]; then
+  ok "re-run after the move gives the normal route: the loose file, with its digest"
+else no "menu after move" "rc=$rc
+$m"; fi
+
+O=tmp/20261101/onlytree
+fill "$O/image" 200
+move_tree "$O/image" img-o
+st=$("$E" promotion status "$O" --json); rc=$?
+if [ $rc -eq 0 ] && [[ $st == *'"files": []'* ]] && [[ $st == *'"safe_to_clear": false'* ]] && [[ $st == *'the folder holds no regular files'* ]]; then
+  ok "a folder that held only a tree: exit 0, no files, not safe to clear, and the reason"
+else no "only-tree status" "rc=$rc $st"; fi
+m=$(bash "$SCRIPTS/menu.sh" "$E" "$O"); rc=$?
+[ $rc -eq 0 ] && [ -z "$m" ] && ok "that folder's menu is empty" || no "only-tree menu" "rc=$rc $m"
+rmdir "$O"
+err=$("$E" promotion status "$O" --json 2>&1 >/dev/null); rc=$?
+[ $rc -eq 3 ] && [[ $err == *"No such file or directory"* ]] \
+  && ok "the folder gone too: status exits 3, No such file or directory" || no "gone status" "rc=$rc $err"
+
+# Citations of a moved tree. The sibling is the case a prefix rewrite breaks.
+C=tmp/20261101/cited
+fill "$C/tree" 200
+printf 'n\n' >"$C/tree-notes.md"
+printf 'dir %s/tree\nfile %s/tree/f1.txt\nslash %s/tree/\n' "$C" "$C" "$C" >docs/c.md
+printf 'sibling %s/tree-notes.md\n' "$C" >docs/c2.md
+printf 'draft %s/tree/f2.txt\n' "$C" >untracked.md
+git add docs/c.md docs/c2.md
+git commit -qm cites
+m=$(bash "$SCRIPTS/menu.sh" "$E" "$C")
+[ "$m" = "5	none	-	tree	$C/tree	200" ] \
+  && ok "a tree's citations count untracked citers, and the sibling as the documented over-count" || no "tree inbound" "$m"
+move_tree "$C/tree" img-c
+n=$(git grep --untracked -n -F -e "$C/tree" -- . | rows)
+[ "$n" -eq 5 ] && ok "the search finds the citations with their locations, untracked included" || no "citation search" "$n"
+
+cp docs/c2.md "$W/c2.before"
+sed -E "s#$C/tree#tmp/refs/img-c#g" docs/c2.md >docs/c2-blind.md
+# Directory followed by / or a non-path character, per SKILL.md step 8.
+for f in docs/c.md docs/c2.md untracked.md; do
+  sed -E -e "s#$C/tree/([^[:space:]]+)#\$IMAGE_C@sha256:beef:\\1:1#g" \
+    -e "s#$C/tree/?([^[:alnum:]._/-]|\$)#\$IMAGE_C\\1#g" "$f" >"$W/rewritten"
+  cat "$W/rewritten" >"$f"
+done
+cmp -s docs/c2.md "$W/c2.before" && ok "the rewrite leaves sibling tree-notes.md alone" || no "sibling rewritten" "$(cat docs/c2.md)"
+grep -qF '$IMAGE_C@sha256:beef:f1.txt:1' docs/c.md && ! grep -q "$C/tree/\|$C/tree\$" docs/c.md \
+  && ok "the rewrite turns the tree's citations into the keyed form" || no "keyed citations" "$(cat docs/c.md)"
+
+# Step 9's two commands: only rebuild commands on the reference page may name tmp/refs.
+mkdir -p docs/reference
+printf '| `IMAGE_C` | synthetic | `tar -xf image.tar -C tmp/refs/img-c` |\n' >docs/reference/reference-clones.md
+git add docs/c2-blind.md docs/reference/reference-clones.md
+step9() {
+  git grep -nE 'tmp/([0-9]{8}|refs)/' -- . ':!docs/reference/reference-clones.md'
+  git grep -nE 'tmp/([0-9]{8}/|refs/[^[:space:]`]+/)' -- docs/reference/reference-clones.md
+}
+hits=$(step9)
+if [[ $hits == *"docs/c2-blind.md"*"tmp/refs/img-c-notes.md"* ]] && [[ $hits != *"reference-clones.md"* ]]; then
+  ok "step 9 fails the blind rewrite's citation and allows the rebuild command"
+else no "step 9 blind rewrite" "$hits"; fi
+printf 'see `tmp/refs/img-c/f1.txt`\n' >>docs/reference/reference-clones.md
+hits=$(step9)
+[[ $hits == *"reference-clones.md"*"tmp/refs/img-c/f1.txt"* ]] \
+  && ok "step 9 fails a path inside a tree, even on the reference page" || no "step 9 on the page" "$hits"
+git reset -q
+rm -f docs/c2-blind.md untracked.md
+
+# A tree path can hold a space; the prescribed line quotes it.
+S=tmp/20261101/spaced
+fill "$S/big image" 200
+move_tree "$S/big image" "img s"; rc=$?
+[ $rc -eq 0 ] && [ ! -e "$S/big image" ] && [ -f "tmp/refs/img s/f199.txt" ] \
+  && ok "the move takes a tree path holding a space" || no "spaced move" "rc=$rc"
+
+# Step 3: a binary or secret-named file reads text on the menu; the counts send the agent
+# to scan each text row alone, off the judge, and those rows become data.
+B=tmp/20261101/unscannable
+mkdir -p "$B"
+printf 'k\n' >"$B/id_rsa"; printf 'a\000b\n' >"$B/b.bin"; printf 'plain\n' >"$B/n.md"
+grep -qF '<envscan> scan --known-only --no-ignore --json <file>' "$SKILL" \
+  && ok "the locating scan tested here is the one SKILL.md prescribes" || no "SKILL.md locating scan"
+m=$(bash "$SCRIPTS/menu.sh" "$E" "$B")
+[ "$(printf '%s\n' "$m" | awk -F '\t' '$4 == "text"' | rows)" -eq 3 ] \
+  && ok "the binary and secret-named files read text on the menu" || no "unscannable rows" "$m"
+s=$("$E" scan --known-only --no-ignore --json "$B" 2>/dev/null)
+[[ $s == *'"binary": 1'* ]] && [[ $s == *'"secret_named": 1'* ]] \
+  && ok "the folder scan gives both as counts" || no "unscannable counts" "$s"
+found=""
+while IFS= read -r f; do
+  s=$("$E" scan --known-only --no-ignore --json "$f" 2>/dev/null)
+  if [[ $s != *'"tier": "plain"'* ]]; then no "locating scan tier" "$f $s"; fi
+  if [[ $s != *'"binary": 0'* ]] || [[ $s != *'"secret_named": 0'* ]]; then found="$found ${f##*/}"; fi
+done <<EOF
+$(printf '%s\n' "$m" | awk -F '\t' '$4 == "text" {print $5}')
+EOF
+[ "$found" = " b.bin id_rsa" ] \
+  && ok "scanning each text row alone finds the two, and leaves the plain file" || no "locating scan" "$found"
+
+# A folder that held only a tree: the menu is empty, yet the move left tracked edits that
+# steps 7 to 9 must still commit and check.
+OC=tmp/20261101/onlycited
+fill "$OC/image" 200
+printf 'see %s/image/f1.txt\n' "$OC" >docs/oc.md
+git add docs/oc.md; git commit -qm oc
+move_tree "$OC/image" img-oc
+printf 'see $IMAGE_OC@sha256:beef:f1.txt:1\n' >docs/oc.md
+m=$(bash "$SCRIPTS/menu.sh" "$E" "$OC"); rc=$?
+d=$(git status --porcelain -- docs/oc.md)
+[ $rc -eq 0 ] && [ -z "$m" ] && [ -n "$d" ] \
+  && ok "an empty menu can still leave a move's rewrite uncommitted" || no "only-tree edit" "rc=$rc [$m] [$d]"
+grep -qF 'changed tracked files, run steps 7 to 9 for them first' "$SKILL" \
+  && ok "SKILL.md sends that case through steps 7 to 9 before step 11" || no "SKILL.md empty-menu sentence"
+git switch -q -c promote/onlycited main
+git add -- docs/oc.md; git commit -qm "Rewrite the moved tree's citation"
+[ -z "$(git status --porcelain -- docs/oc.md)" ] && [ -z "$(git grep -nF "$OC/" -- docs/oc.md)" ] \
+  && ok "steps 7 to 9 commit it, and no citation of the folder is left" || no "only-tree commit"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

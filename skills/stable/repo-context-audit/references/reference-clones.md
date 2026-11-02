@@ -46,6 +46,21 @@ read without moving the checkout, using `git show <sha>:<path>`.
 Existing clones stay where they are, including any outside `tmp/`, and the rule applies
 wherever they sit. New rebuilds go to `tmp/refs/<key>/`.
 
+## Extracted trees
+
+An *extracted tree* is a git-less tree extracted from a container image, the only form
+some code is delivered in. It moves to `tmp/refs/<key>/` whole and gets a row like a
+clone, with its folder named after the key and a new `IMAGE_A` key in `.env`. A private
+tree always gets a row; a public one only if committed text cites it.
+
+Cite a line as `$IMAGE_A@<image digest>:<path>:<line>`. The digest does what a clone's
+SHA does, so the row pins nothing. There is no clone URL, so the row's rebuild command
+is whatever extracts the image into the folder. With no such command, the row says so:
+`none: delivered as an image, not rebuildable from here`. A folder that cannot be
+rebuilt is not cache, so ask the operator before it is ever cleared.
+
+The next section applies unchanged.
+
 ## What may leave a clone
 
 Citations and descriptions in your own words. No verbatim client code, and no snapshots

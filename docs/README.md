@@ -77,5 +77,6 @@ it with a new one rather than editing it.
 - [`tmp/` promotion copies what runs and rewrites what is read](adr/0015-tmp-promotion-copies-what-runs-and-rewrites-what-is-read.md)
 - [No outbound gate on agent tool calls](adr/0016-no-outbound-gate-on-agent-tool-calls.md)
 - [Promotion keeps cited tool output, is opt-in, and ends in the context audit](adr/0017-promotion-keeps-cited-output-and-is-opt-in.md)
+- [Big directories move out of promotion and are never recorded](adr/0018-big-directories-move-out-and-are-never-recorded.md)
 
 <!-- END GENERATED INDEX -->
