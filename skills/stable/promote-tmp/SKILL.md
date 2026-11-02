@@ -26,8 +26,11 @@ scans clean. Prose still has no copy path.
 
 A data file (`.csv .tsv .jsonl .ndjson .xlsx .xls .parquet .sqlite .db .avro .orc
 .hyper .twbx .tdsx`) is never opened by you and never snapshot: cache, discard or
-refuse. A nested clone is moved to `tmp/refs/<key>/`, outside the topic folder, not
-promoted.
+refuse. So is anything envscan cannot scan: over 2 MB (the menu marks it `data`),
+binary or secret-named. The scan report gives the last two as counts only
+(`skipped.binary`, `skipped.secret_named`), so report those counts to the operator.
+A nested clone or an extracted tree is moved to `tmp/refs/<key>/`, outside the topic
+folder, not promoted.
 
 **Scope.** The menu is working output to the operator and may use resolved names.
 Everything committed (snapshot, write-up, README, commit message) names each
@@ -61,6 +64,27 @@ may be off `PATH`.
    One row per `none` or `changed` file: `inbound state sha256 kind path`, most
    cited first. Empty output means every file is recorded: go to step 11.
 
+   **Tree rows come first.** A directory of 200 or more unrecorded files
+   (`MENU_TREE_MIN`) folds to `inbound none - tree path files`, and while any tree
+   folds the menu prints only tree and clone rows. Propose each as a move, showing
+   its path, file count and citations, and stop for approval. An operator's decline
+   becomes `--expand <dir>`, which keeps that whole subtree row by row. After approval:
+
+   ```bash
+   [ ! -e tmp/refs/<key> ] && mkdir -p tmp/refs && mv <dir> tmp/refs/<key>
+   ```
+
+   Move the whole directory, never a file list: status cannot see a tree's symlinks or
+   empty directories. If the target exists, stop and ask; a plain `mv` would nest the
+   tree inside it. Confirm `git check-ignore tmp/refs/<key>`. Add the key to `.env`
+   and `.env.example` (`IMAGE_A`, the folder `tmp/refs/image-a/`) and the reference row
+   (`skills/stable/repo-context-audit/references/reference-clones.md` in the
+   context-lab repo). Rewrite the tree's citations as in step 8, then re-run this step;
+   the normal route starts there. The move comes before the scan, or the scan pays for
+   every tree file. A recorded file never folds, so a recorded file moved by hand with
+   its parent is off this route: it reads `none` at the new path, and its old record
+   stays in the store.
+
 3. **Scan.** Two scans, both read from their JSON.
 
    ```bash
@@ -71,9 +95,16 @@ may be off `PATH`.
    The first covers the whole folder, recorded files included, because a file that
    passed can fail once a value is added to `.env`. The second runs judgement on
    the menu files only, because only files named on the command line reach the
-   judge. Exit 1 is leaks found. Exit 3 with `data_files` listing a file
-   `"scanned": false` is a result: that file is unscanned, never clean. Exit 3
-   with no JSON is an error: stop. The tier is the machine's setting; leave it.
+   judge. Judgement reads `.log`, `.json` and `.diff` text files too. Exit 1 is leaks
+   found. Exit 3 with `data_files` listing a file `"scanned": false` is a result: that
+   file is unscanned, never clean. Exit 3 with no JSON is an error: stop. The tier is
+   the machine's setting; leave it.
+
+   Read the report's tier label: a `plain (fallback...)` report exits 0, so report it
+   as "not judged", never as clean. Read the `unjudged` list: those values got no
+   verdict. A specific shape tagged rejected (`ip`, `email`, `home-path`, `account-id`,
+   `bucket`, `gh-repo`) still gets a look from you, because judgement is triage and not
+   the decision on what is private.
 
 4. **Draw the menu.** One row per menu file, in step 2's order (inbound
    references, then the verdict line): path, kind, inbound count, first 12
@@ -84,9 +115,9 @@ may be off `PATH`.
    scanner output is a row with handling `discard`, shown as one.
 
    A tool-output row proposed as `snapshot` needs more than the scan: **read the
-   whole file yourself.** The judge does not read every extension (`.log` and
-   `.json` among them), so a host, account, path or person not yet in `.env` gets
-   no candidate. List each one you find under the row as a new **variable** or a
+   whole file yourself.** The judge does not read every extension, and a judged file
+   can still hold a host, account, path or person not yet in `.env` that gets no
+   verdict. List each one you find under the row as a new **variable** or a
    **rewrite**. Output too long to read, or holding regulated data, is `discard` or
    `refuse`, never a snapshot.
 
@@ -155,6 +186,10 @@ may be off `PATH`.
      the `tmp/` prefix, as above.
    - Rewrite every tracked citation of the topic folder's files (the `inbound`
      column) to the evidence path or the page that replaced it.
+   - **A moved tree's citations** take the form `$IMAGE_A@<image digest>:<path>:<line>`.
+     Find them with `git grep --untracked -n -F -e <dir>`, because the menu's count
+     hides locations. Rewrite only `<dir>` followed by `/` or a non-path character: a
+     prefix rewrite turns sibling `<dir>-notes.md` into a broken citation.
 
 9. **Commit named paths only.**
 
@@ -163,8 +198,17 @@ may be off `PATH`.
    git commit -F <message file>
    ```
 
-   Then confirm no citation of the folder is left: `git grep -nE 'tmp/[0-9]{8}/'`
-   prints nothing for this topic.
+   Then confirm no citation of the folder or of a moved tree is left. Both must print
+   nothing for this topic:
+
+   ```bash
+   git grep -nE 'tmp/([0-9]{8}|refs)/' -- . ':!docs/reference/reference-clones.md'
+   git grep -nE 'tmp/([0-9]{8}/|refs/[^[:space:]`]+/)' -- docs/reference/reference-clones.md
+   ```
+
+   A path under `tmp/refs/` resolves on one machine only. The one exception is a
+   rebuild command on the reference page, which names the folder and nothing inside it
+   (`git clone "$url" tmp/refs/repo-a`), so the second command lets it through.
 
 10. **Record the rest, after the commit.** For every snapshot, write-up and cache
     row, with the commit that holds its copy, page or pointer:
@@ -186,6 +230,11 @@ may be off `PATH`.
     default branch; that is correct. You never delete the folder: clearing it is
     the operator's call, after they see `refused_deleted_on_clear`.
 
+    A folder that held only a tree can never read `true`. Status gives exit 0,
+    `"files": []`, `"safe_to_clear": false` and the reason `the folder holds no
+    regular files`; if the directory is gone too, it exits 3 with `No such file or
+    directory`. Explain this and report the folder as finished.
+
 12. **Wrap up the session's context.** Promotion keeps the evidence; it does not
     decide what the repo should now say. Invoke the `context-lab:repo-context-audit`
     skill next and follow its route, so what this session learned reaches
@@ -195,4 +244,6 @@ may be off `PATH`.
 ## Proof
 
 `tests/route.sh` runs this route end to end on a synthetic folder, including a
-changed file returning to the menu and a fresh-checkout rebuild.
+changed file returning to the menu, a fresh-checkout rebuild and a tree's move.
+`tests/menu.sh` covers the folding rules, and `tests/mutants.sh`, run by hand, checks
+that it catches a broken menu.

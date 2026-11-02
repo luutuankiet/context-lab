@@ -287,4 +287,9 @@ printf '\n%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"
 printf '\n== route.sh\n'
 route=0
 "$SH_BASH" "$HERE/route.sh" || route=1
-[ "$fail" -eq 0 ] && [ "$route" -eq 0 ]
+
+# The menu's folding rules, under the same bash.
+printf '\n== menu.sh\n'
+menu=0
+"$SH_BASH" "$HERE/menu.sh" || menu=1
+[ "$fail" -eq 0 ] && [ "$route" -eq 0 ] && [ "$menu" -eq 0 ]
