@@ -35,6 +35,15 @@ run() {
   fi
 }
 
+# A failure on the unmutated script would make every mutant read as caught.
+MENU_SH=$MENU bash "$HERE/menu.sh" >"$W/out" 2>&1
+n=$(grep -c '^FAIL' "$W/out")
+if [ "$n" -gt 0 ] || ! grep -q ' passed, 0 failed' "$W/out"; then
+  printf 'BASELINE NOT CLEAN (%s FAIL), so no mutant result means anything\n' "$n"
+  grep '^FAIL' "$W/out"
+  exit 1
+fi
+
 run no-config-overrides -e 's/git -c grep.lineNumber=false -c grep.column=false -c grep.fullName=false/git/' -e 's/grep --no-color/grep/'
 run grep-failure-swallowed -e 's/"\$rc" -gt 1/"$rc" -gt 999/'
 run no-untracked -e 's/ --untracked//'

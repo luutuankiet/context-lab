@@ -54,7 +54,8 @@ fill() { mkdir -p "$1"; i=0; while [ "$i" -lt "$2" ]; do printf 'x%s\n' "$i" >"$
 topic() { T="tmp/20990101/$1"; mkdir -p "$T"; }
 menu() { bash "$P" "$E" "$@"; }
 rows() { grep -c . || true; }
-inb() { printf '%s\n' "$1" | awk -F '\t' -v p="$2" '$5 == p {print $1}'; }
+# The path goes through ENVIRON: BSD awk's -v drops the backslash from one holding \s.
+inb() { printf '%s\n' "$1" | INB_PATH=$2 awk -F '\t' '$5 == ENVIRON["INB_PATH"] {print $1}'; }
 digest() { "$E" promotion status "$1" --json | awk -v p="$2" 'index($0, "\"path\": \"" p "\"") {f = 1; next} f && /sha256/ {gsub(/[",]/, "", $2); print $2; exit}'; }
 record() { "$E" promotion add "$2" --sha256 "$(digest "$1" "$2")" --handling discard >/dev/null; }
 
