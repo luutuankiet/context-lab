@@ -86,7 +86,7 @@ Weight scales with distance:
 
 ### V. Idle rollup: one reply to review
 
-WHY: the thread is linear to you and a haystack to the user. They come back to several replies scattered between tool calls and subagent reports, some superseding others. Patching those together is the work this rule removes. Reply length is an accepted cost.
+WHY: the user comes back cold to several replies scattered between tool calls and subagent reports. Patching them together is the work this rule removes.
 
 Scope: actions, tasks and subagents started by this session. Another session's reply is out of scope; never wait on one before rolling up.
 
@@ -94,18 +94,17 @@ Scope: actions, tasks and subagents started by this session. Another session's r
 
 **When nothing is in flight and you are about to end the turn**, write a rollup if there has been more than one substantive reply, or any background result, since the user's last message. One reply that already covers everything is its own rollup.
 
-A rollup is written for a cold reader who reads only this reply:
+Write it as if the user just said "wait, what?" about the whole session. Back up to where they lost you. Re-pitch the latest frontier only: what is true now, and what they need to review. Plain English: short sentences, one idea each, common words.
 
-- Opens with the heading `# Rollup: <topic>`.
-- Covers every thread of the session still open, including pivots, and every item the user has not yet answered, however old. A thread the user closed gets no section.
-- Gives each thread a `## Thread N: <topic>` section, named by what was discussed rather than by task or subagent, with its own verdict and evidence. Keep a thread's number and name across rollups, because the user steers by them.
-- After a compaction, rebuilds from the transcript, never the summary.
-- Inlines what a decision needs: the finding, the evidence, and the code. Long code gets the key lines plus a path to open.
-- Drops anything superseded or dead. Keep one line only if the user may still believe the old version.
-- Names any earlier statement of yours that was wrong.
-- States current truth, not the order it was discovered in.
-- Puts a section IV anchor under each item to show its origin. Never needed to decide, and never replaces inlined content.
-- Uses the FULL shape with Narrative split into those threads, then in order: `Corrections to what I told you` when there are any, Digest, Footer, and a `What I need from you` table of each decision and recommendation. The last line says what is blocked on the user.
+- Opens with `# Rollup: <topic>`.
+- One `## Thread N: <topic>` per open thread, named by what was discussed, including every item the user has not yet answered, however old. Keep N and the name across rollups; the user steers by them. A closed thread gets no section.
+- Each thread, in order: the premise in the user's terms; `How we know:` numbered steps of the evidence behind the current verdict; a small picture or pseudo example only when the mechanism is not obvious; `Not done:`, present even when empty.
+- Inline what a decision needs: the finding, the evidence, the code. Long code gets the key lines plus a path.
+- No history: no dropped ideas, changed assumptions, corrections or dead ends. A dead end appears only when it is the user's likely first guess, and then as a fact ("the script runs once"), not as a story of what you tried.
+- One exception: if the user already acted on something now wrong, say so in the thread in one clause ("this undoes the edit you made").
+- A section IV anchor under each item shows its origin. Never needed to decide; never replaces inlined content.
+- After a compaction, rebuild from the transcript, never the summary.
+- Ends with a `What I need from you` table (`decision | my read`), then one line saying what is blocked on the user. No Digest, no Footer, no FULL shape.
 
 ## Trap: a subagent's worktree deletes its own evidence
 
