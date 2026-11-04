@@ -99,9 +99,22 @@ esac
 
 model=${model_full#Claude }
 
-# Row 1: the working directory, on its own row. Older clients may not send it;
-# print no row at all rather than an empty one.
-[ -n "$cwd" ] && printf '  %s\n' "$(trim_left "$cwd" $((cols - 2)))"
+# The signed-in account, because switching accounts mid-session leaves no other
+# trace on screen. The session JSON does not carry it; the client's own config
+# does, and it is re-read every render so a switch shows on the next event.
+email=$(jq -r '.oauthAccount.emailAddress // empty' \
+          "${CLAUDE_CONFIG_DIR:-$HOME}/.claude.json" 2>/dev/null)
+
+# Row 1: the working directory, then the account, dimmed. Older clients may not
+# send a directory; print no row at all rather than an empty one. The path is
+# what gets trimmed -- the account is the shorter and the one being looked for.
+if [ -n "$cwd" ]; then
+  if [ -n "$email" ] && [ $((cols - 4 - ${#email})) -ge 12 ]; then
+    printf '  %s  %s%s%s\n' "$(trim_left "$cwd" $((cols - 4 - ${#email})))" "$DIM" "$email" "$RST"
+  else
+    printf '  %s\n' "$(trim_left "$cwd" $((cols - 2)))"
+  fi
+fi
 
 # Row 2: model and context. No trailing newline -- the dispatcher joins
 # contributors without inserting one, which is what puts an alert segment on
