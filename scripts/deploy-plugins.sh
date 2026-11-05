@@ -32,7 +32,8 @@ fi
 
 # Runs under the host's login shell, zsh or bash, so it avoids word splitting.
 # A non-interactive SSH shell does not have ~/.local/bin on PATH.
-# No -y on plugin update: a changed install command fails here rather than being
+# Plugins synced from claude.ai (id ends in @synced) cannot be updated by the
+# CLI and are skipped. No -y on plugin update: a changed install command fails here rather than being
 # accepted unseen.
 remote='
 export PATH="$HOME/.local/bin:$PATH"
@@ -42,6 +43,8 @@ ids="$(claude plugin list --json </dev/null | sed -n "s/^ *\"id\": \"\(.*\)\",\$
 [ -n "$ids" ] || { echo "FAILED no plugins listed"; rc=1; }
 while IFS= read -r id; do
   [ -n "$id" ] || continue
+  # Synced from the claude.ai account, no marketplace behind it: managed there.
+  case "$id" in *@synced) continue ;; esac
   claude plugin update "$id" </dev/null || { echo "FAILED plugin: $id"; rc=1; }
 done <<IDS
 $ids
