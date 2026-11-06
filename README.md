@@ -155,6 +155,8 @@ claude plugin install <name>@context-lab
 | `dbtcx` | `luutuankiet/dbtcx` |
 | `looker-mcp-shim` | `luutuankiet/looker-mcp-shim` |
 | `slides-mcp` | `luutuankiet/slides-mcp` |
+| `google-docs-mcp` | `luutuankiet/google-docs-mcp` |
+| `gsheet-mcp` | `luutuankiet/gsheet-mcp` |
 | `skills-utils` | `luutuankiet/skills-utils` |
 
 Installing one does not install the rest. `install.sh` registers the whole set

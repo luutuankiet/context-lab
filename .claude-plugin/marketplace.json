@@ -27,6 +27,14 @@
       "source": { "source": "github", "repo": "luutuankiet/slides-mcp" }
     },
     {
+      "name": "google-docs-mcp",
+      "source": { "source": "github", "repo": "luutuankiet/google-docs-mcp" }
+    },
+    {
+      "name": "gsheet-mcp",
+      "source": { "source": "github", "repo": "luutuankiet/gsheet-mcp" }
+    },
+    {
       "name": "skills-utils",
       "source": { "source": "github", "repo": "luutuankiet/skills-utils" }
     },

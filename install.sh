@@ -151,14 +151,14 @@ install_rtk() {
 # plugin out of a marketplace whose source is the *GitHub repo* -- so a host needs
 # no clone, the marketplace serves the default branch, and `claude plugin update`
 # is the real update verb (ADR 0008, superseding the directory source of 0006).
-# The last six are the same marketplace serving *other* repos: a skill that
+# The last eight are the same marketplace serving *other* repos: a skill that
 # documents a tool is that tool's manual, so it lives in the tool's own repo and
 # this catalogue holds nothing but a name and a pointer (ADR 0009). Their
 # entries carry no ref and no sha, so each resolves that repo's default branch
 # at install and update time.
 #
 # Each spec is `plugin|marketplace|source`. An empty source means the marketplace
-# is already known to the CLI and must not be added -- which is why the seven
+# is already known to the CLI and must not be added -- which is why the nine
 # `context-lab` rows name the source once, on the row that adds it, and the rows
 # after it leave the field empty. Written as a newline list and read with `while
 # read`, not an array: bash 3.2, the oldest interpreter in the fleet, makes
@@ -171,7 +171,9 @@ learn-with-feedback-loop|context-lab|
 dbtcx|context-lab|
 looker-mcp-shim|context-lab|
 slides-mcp|context-lab|
-skills-utils|context-lab|"
+skills-utils|context-lab|
+google-docs-mcp|context-lab|
+gsheet-mcp|context-lab|"
 
 install_plugin() {
   step "3. marketplace plugins"
