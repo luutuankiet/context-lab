@@ -37,6 +37,11 @@ folder, not promoted.
 Everything committed (snapshot, write-up, README, commit message) names each
 sensitive thing as a bare `$KEY` and scans clean.
 
+**The commit's author and committer are not findings.** The name and email git signs
+each commit with (`git config user.name`, `user.email`) belong to the operator and
+stay as they are, even when `.env` holds the same value: the pre-push gate exempts
+an exact match. Never propose rewriting them, and never ask the operator to.
+
 Run every command from the repo root. Commands write `<envscan>` for the
 `envscan=` path step 1 prints; use that absolute path, because `$HOME/.local/bin`
 may be off `PATH`.
@@ -120,7 +125,8 @@ may be off `PATH`.
    as "not judged", never as clean. Read the `unjudged` list: those values got no
    verdict. A specific shape tagged rejected (`ip`, `email`, `home-path`, `account-id`,
    `bucket`, `gh-repo`) still gets a look from you, because judgement is triage and not
-   the decision on what is private.
+   the decision on what is private. An `email` equal to the repo's `git config
+   user.email` is the operator's own commit identity: name it as such, never as a leak.
 
 4. **Draw the menu.** One row per menu file, in step 2's order (inbound
    references, then the verdict line): path, kind, inbound count, first 12

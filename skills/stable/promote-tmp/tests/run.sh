@@ -67,8 +67,10 @@ TARGETS="x86_64-unknown-linux-musl aarch64-unknown-linux-musl aarch64-apple-darw
 
 # Releases: good, a wrong checksum, a sums file missing the entry, and an asset
 # whose binary cannot run on this machine.
-build_release() { # name kind
-  local d="$W/www/$1/$TAG" t
+build_release() { # name kind [version]
+  local v="${3:-$MIN}" t
+  local tag="v$v"
+  local d="$W/www/$1/$tag"
   mkdir -p "$d" "$W/pkg"
   : >"$d/SHA256SUMS"
   for t in $TARGETS; do
@@ -76,13 +78,13 @@ build_release() { # name kind
     if [ "$2" = badbin ]; then
       printf '\177ELF not really\n' >"$W/pkg/$t/envscan"
     else
-      fake_bin "$W/pkg/$t/envscan" "$MIN" "$t"
+      fake_bin "$W/pkg/$t/envscan" "$v" "$t"
     fi
-    tar -czf "$d/envscan-$TAG-$t.tar.gz" -C "$W/pkg/$t" envscan
+    tar -czf "$d/envscan-$tag-$t.tar.gz" -C "$W/pkg/$t" envscan
     case $2 in
-      badsum) echo "0000000000000000000000000000000000000000000000000000000000000000  envscan-$TAG-$t.tar.gz" >>"$d/SHA256SUMS" ;;
+      badsum) echo "0000000000000000000000000000000000000000000000000000000000000000  envscan-$tag-$t.tar.gz" >>"$d/SHA256SUMS" ;;
       noentry) ;;
-      *) sha_line "$d/envscan-$TAG-$t.tar.gz" >>"$d/SHA256SUMS" ;;
+      *) sha_line "$d/envscan-$tag-$t.tar.gz" >>"$d/SHA256SUMS" ;;
     esac
   done
 }
@@ -90,6 +92,11 @@ build_release good good
 build_release badsum badsum
 build_release noentry noentry
 build_release badbin badbin
+# A newer release, and the `latest` endpoint that serves its SHA256SUMS.
+NEWER=9.9.9
+build_release up good "$NEWER"
+mkdir -p "$W/www/up-latest"
+cp "$W/www/up/v$NEWER/SHA256SUMS" "$W/www/up-latest/SHA256SUMS"
 
 python3 -u -m http.server 0 --bind 127.0.0.1 --directory "$W/www" >"$W/server.log" 2>&1 &
 SERVER_PID=$!
@@ -131,7 +138,7 @@ EOF
     done
   fi
 }
-BASE_TOOLS="sh cat mkdir mktemp rm tar gzip chmod mv tr sed sleep"
+BASE_TOOLS="sh cat mkdir mktemp rm tar gzip chmod mv tr sed sleep find touch"
 toolbox "$W/path-full" "$BASE_TOOLS curl wget sha256sum shasum"
 toolbox "$W/path-nosum" "$BASE_TOOLS curl wget"
 toolbox "$W/path-shasum" "$BASE_TOOLS curl shasum"
@@ -144,7 +151,7 @@ run() {
   shift 3
   H="$W/home-$c"
   mkdir -p "$H"
-  HOME="$H" PATH="$p" ENVSCAN_RELEASE_BASE="$b" "$SH_BASH" "$LAUNCHER" "$@" >"$W/out" 2>"$W/err"
+  HOME="$H" PATH="$p" ENVSCAN_RELEASE_BASE="$b" ENVSCAN_LATEST_BASE="${L:-$DEAD}" "$SH_BASH" "$LAUNCHER" "$@" >"$W/out" 2>"$W/err"
   RC=$?
   OUT=$(cat "$W/out")
   ERR=$(cat "$W/err")
@@ -184,14 +191,16 @@ else no "older binary upgraded" "rc=$RC out=$OUT err=$ERR"; fi
 rm -f "$W/net-calls"
 mkdir -p "$W/home-current/.local/bin"
 fake_bin "$W/home-current/.local/bin/envscan" "$MIN" local
+touch "$W/home-current/.local/bin/.envscan-update-checked"
 run current "$W/path-nonet" "$DEAD" scan x
 if [ $RC -eq 0 ] && [ "$OUT" = "target=local args=scan x" ] && [ ! -e "$W/net-calls" ]; then
-  ok "present and current: runs with no network call (unreachable base, curl/wget never invoked)"
+  ok "present, current and checked today: runs with no network call (unreachable base, curl/wget never invoked)"
 else no "present and current makes no network call" "rc=$RC out=$OUT err=$ERR calls=$(cat "$W/net-calls" 2>/dev/null)"; fi
 
 # 5. Newer than the floor is kept as it is.
 mkdir -p "$W/home-newer/.local/bin"
 fake_bin "$W/home-newer/.local/bin/envscan" 9.10.0 newer
+touch "$W/home-newer/.local/bin/.envscan-update-checked"
 run newer "$W/path-nonet" "$DEAD"
 if [ $RC -eq 0 ] && [ "$(installed_version)" = "envscan 9.10.0" ] && [ ! -e "$W/net-calls" ]; then
   ok "newer binary is kept, no network"
@@ -280,6 +289,75 @@ FAKE_S=Darwin FAKE_M=x86_64 run arch-none "$W/path-full" "$URL/good"
 if [ $RC -eq 3 ] && [[ $ERR == *"no release is built for Darwin x86_64"* ]] && [ ! -e "$H/.local/bin/envscan" ]; then
   ok "a machine with no release (Intel macOS) is refused with the reason"
 else no "no release for machine" "rc=$RC err=$ERR"; fi
+
+# 17-23. The daily update check on the normal path.
+STAMPF=".local/bin/.envscan-update-checked"
+tmp_leftovers() {
+  local n=0 f
+  for f in "$W/tmpdir"/envscan-latest.*; do
+    [ -e "$f" ] && n=$((n + 1))
+  done
+  echo "$n"
+}
+mkdir -p "$W/tmpdir"
+export TMPDIR="$W/tmpdir"
+
+# 17. No stamp and a newer latest: upgraded, stamped, output passes through.
+mkdir -p "$W/home-up/.local/bin"
+fake_bin "$W/home-up/.local/bin/envscan" "$MIN" local
+L="$URL/up-latest" run up "$W/path-full" "$URL/up" probe
+if [ $RC -eq 0 ] && [ "$OUT" = "target=x86_64-unknown-linux-musl args=probe" ] && [ "$(installed_version)" = "envscan $NEWER" ] && [ -e "$H/$STAMPF" ] && [ "$(leftovers)" = 0 ] && [ "$(tmp_leftovers)" = 0 ]; then
+  ok "daily check installs a newer latest release, then runs it"
+else no "daily check upgrades" "rc=$RC out=$OUT err=$ERR"; fi
+
+# 18. Stamp fresh: no network at all.
+rm -f "$W/net-calls"
+fake_bin "$W/home-up/.local/bin/envscan" "$MIN" local
+touch "$W/home-up/$STAMPF"
+L="$URL/up-latest" run up "$W/path-nonet" "$URL/up" probe
+if [ $RC -eq 0 ] && [ "$OUT" = "target=local args=probe" ] && [ ! -e "$W/net-calls" ]; then
+  ok "checked within the last day: no network call"
+else no "daily check throttled" "rc=$RC err=$ERR calls=$(cat "$W/net-calls" 2>/dev/null)"; fi
+
+# 19. Already at the latest: unchanged, stamped.
+mkdir -p "$W/home-same/.local/bin"
+fake_bin "$W/home-same/.local/bin/envscan" "$NEWER" same
+L="$URL/up-latest" run same "$W/path-full" "$DEAD" probe
+if [ $RC -eq 0 ] && [ "$OUT" = "target=same args=probe" ] && [ -e "$H/$STAMPF" ] && [ -z "$ERR" ]; then
+  ok "at the latest version: binary left as it is, check stamped"
+else no "daily check at latest" "rc=$RC out=$OUT err=$ERR"; fi
+
+# 20. Latest unreachable: the run still succeeds with the binary's own exit code.
+mkdir -p "$W/home-off/.local/bin"
+fake_bin "$W/home-off/.local/bin/envscan" "$MIN" local
+FAKE_EXIT=1 L="$DEAD" run off "$W/path-full" "$DEAD" probe
+nwarn=$(printf '%s\n' "$ERR" | grep -c "update check failed")
+if [ $RC -eq 1 ] && [ "$OUT" = "target=local args=probe" ] && [ "$nwarn" = 1 ] && [ "$(installed_version)" = "envscan $MIN" ] && [ ! -e "$H/$STAMPF" ] && [ "$(leftovers)" = 0 ] && [ "$(tmp_leftovers)" = 0 ]; then
+  ok "latest unreachable: one warning, binary untouched, exit code passes through, retried next run"
+else no "daily check offline" "rc=$RC out=$OUT err=$ERR"; fi
+
+# 21. A newer version whose assets are missing: old binary kept, only a warning.
+mkdir -p "$W/home-gone/.local/bin"
+fake_bin "$W/home-gone/.local/bin/envscan" "$MIN" local
+L="$URL/up-latest" run gone "$W/path-full" "$URL/good" probe
+if [ $RC -eq 0 ] && [ "$OUT" = "target=local args=probe" ] && [[ $ERR == *"update check failed"* ]] && [ "$(installed_version)" = "envscan $MIN" ] && [ "$(leftovers)" = 0 ]; then
+  ok "a failed newer download keeps the old binary and only warns"
+else no "failed newer download" "rc=$RC out=$OUT err=$ERR"; fi
+
+# 22. No binary: the floor installs, then the check runs; a dead latest only warns.
+L="$DEAD" run fresh "$W/path-full" "$URL/good" probe
+if [ $RC -eq 0 ] && [ "$(installed_version)" = "envscan $MIN" ] && [[ $ERR == *"update check failed"* ]]; then
+  ok "missing binary: floor installed, then a dead latest URL only warns"
+else no "missing binary then check" "rc=$RC out=$OUT err=$ERR"; fi
+
+# 23. ENVSCAN_NO_UPDATE=1: no network.
+rm -f "$W/net-calls"
+mkdir -p "$W/home-optout/.local/bin"
+fake_bin "$W/home-optout/.local/bin/envscan" "$MIN" local
+ENVSCAN_NO_UPDATE=1 L="$URL/up-latest" run optout "$W/path-nonet" "$URL/up" probe
+if [ $RC -eq 0 ] && [ "$OUT" = "target=local args=probe" ] && [ ! -e "$W/net-calls" ]; then
+  ok "ENVSCAN_NO_UPDATE=1 skips the check"
+else no "opt-out" "rc=$RC err=$ERR"; fi
 
 printf '\n%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"
 

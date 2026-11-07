@@ -5,11 +5,17 @@
 #   envscan              install or upgrade if needed, print the binary's path
 #   envscan <args...>    the same, then exec the binary with <args...>
 #
-# A present binary at or above the floor is used as it is: no network at all.
-# Otherwise the release asset for the floor version is fetched for this machine,
-# checked against the release's SHA256SUMS, and moved into place. Any failure
-# leaves no binary behind and exits 3 with a line naming what is missing, so it
-# never reads as a clean scan (0) or as leaks found (1).
+# A binary below the floor, or none, gets the floor version's release asset for
+# this machine, checked against the release's SHA256SUMS and moved into place.
+# Any failure there leaves no binary behind and exits 3 with a line naming what
+# is missing, so it never reads as a clean scan (0) or as leaks found (1).
+#
+# Then, at most once a day (a stamp file beside the binary), the latest release's
+# SHA256SUMS is read and a newer release is installed the same verified way, so
+# hosts stay current without a floor bump per release. The pre-push hook runs
+# that same binary, so it stays current too. This check never fails the run:
+# offline, the present binary is used and one warning is printed.
+# ENVSCAN_NO_UPDATE=1 turns it off.
 #
 # The pre-push hook calls the binary directly, never this launcher, so a push
 # never waits on a download. $HOME/.local/bin may be off PATH, so callers use
@@ -18,14 +24,17 @@
 # Written for bash 3.2 under set -euo pipefail: no timeout(1), no GNU coreutils.
 #
 # ENVSCAN_RELEASE_BASE overrides where releases are fetched from; the tests point
-# it at a local server. The floor itself cannot be overridden.
+# it at a local server, and ENVSCAN_LATEST_BASE does the same for the latest
+# release's SHA256SUMS. The floor itself cannot be overridden.
 set -euo pipefail
 
-ENVSCAN_MIN_VERSION="0.2.1"
+ENVSCAN_MIN_VERSION="0.2.2"
 ENVSCAN_REPO="luutuankiet/envscan"
 BASE="${ENVSCAN_RELEASE_BASE:-https://github.com/$ENVSCAN_REPO/releases/download}"
 BIN_DIR="$HOME/.local/bin"
 BIN="$BIN_DIR/envscan"
+LATEST="${ENVSCAN_LATEST_BASE:-https://github.com/$ENVSCAN_REPO/releases/latest/download}"
+STAMP="$BIN_DIR/.envscan-update-checked"
 
 die() {
   printf 'envscan launcher: %s\n' "$*" >&2
@@ -109,17 +118,18 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# install <version>: fetch, verify and place that release for this machine.
 install() {
-  local tgt tag asset want got line name found have
+  local ver="$1" tgt tag asset want got line name found have
   tgt=$(target)
-  tag="v$ENVSCAN_MIN_VERSION"
+  tag="v$ver"
   asset="envscan-$tag-$tgt.tar.gz"
 
   if ! command -v sha256sum >/dev/null 2>&1 && ! command -v shasum >/dev/null 2>&1; then
-    die "cannot verify a download: neither sha256sum nor shasum is installed; envscan $ENVSCAN_MIN_VERSION is not installed at $BIN"
+    die "cannot verify a download: neither sha256sum nor shasum is installed; envscan $ver is not installed at $BIN"
   fi
   if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
-    die "cannot download: neither curl nor wget is installed; envscan $ENVSCAN_MIN_VERSION is not installed at $BIN"
+    die "cannot download: neither curl nor wget is installed; envscan $ver is not installed at $BIN"
   fi
 
   mkdir -p "$BIN_DIR" || die "cannot create $BIN_DIR"
@@ -127,9 +137,9 @@ install() {
   TMP=$(mktemp -d "$BIN_DIR/.envscan-install.XXXXXX") || die "cannot create a temp directory in $BIN_DIR"
 
   fetch "$BASE/$tag/SHA256SUMS" "$TMP/SHA256SUMS" ||
-    die "envscan $ENVSCAN_MIN_VERSION is not installed at $BIN, and downloading $BASE/$tag/SHA256SUMS failed (offline?)"
+    die "envscan $ver is not installed at $BIN, and downloading $BASE/$tag/SHA256SUMS failed (offline?)"
   fetch "$BASE/$tag/$asset" "$TMP/$asset" ||
-    die "envscan $ENVSCAN_MIN_VERSION is not installed at $BIN, and downloading $BASE/$tag/$asset failed (offline?)"
+    die "envscan $ver is not installed at $BIN, and downloading $BASE/$tag/$asset failed (offline?)"
 
   found=""
   while IFS= read -r line || [ -n "$line" ]; do
@@ -156,8 +166,8 @@ install() {
   # The binary must run here and meet the floor before it replaces anything.
   have=$(version_of "$TMP/x/envscan")
   [ -n "$have" ] || die "the downloaded envscan does not run on this machine ($tgt); refusing to install"
-  version_ge "$have" "$ENVSCAN_MIN_VERSION" ||
-    die "the downloaded envscan reports $have, below $ENVSCAN_MIN_VERSION; refusing to install"
+  version_ge "$have" "$ver" ||
+    die "the downloaded envscan reports $have, below $ver; refusing to install"
 
   mv -f "$TMP/x/envscan" "$BIN" || die "cannot move envscan into $BIN"
   rm -rf "$TMP"
@@ -165,11 +175,51 @@ install() {
   printf 'envscan launcher: installed envscan %s for %s at %s\n' "$have" "$tgt" "$BIN" >&2
 }
 
+# The latest release's version for this machine, read from the asset name its
+# SHA256SUMS lists (`envscan-v<version>-<target>.tar.gz`); empty when none.
+latest_version() { # sums-file target
+  local line name v
+  while IFS= read -r line || [ -n "$line" ]; do
+    name=${line##* }
+    name=${name#\*}
+    case $name in
+      envscan-v*-"$2".tar.gz)
+        v=${name#envscan-v}
+        printf '%s' "${v%-"$2".tar.gz}"
+        return 0
+        ;;
+    esac
+  done <"$1"
+}
+
+# Once a day, install the latest release when it is newer than $1. Never fatal:
+# the work runs in a subshell, so a failed check or download leaves the present
+# binary in place and prints one warning.
+maybe_update() {
+  [ "${ENVSCAN_NO_UPDATE:-}" = 1 ] && return 0
+  # Checked within the last day: no network.
+  [ -n "$(find "$STAMP" -mmin -1440 2>/dev/null || true)" ] && return 0
+  (
+    trap cleanup EXIT
+    tgt=$(target)
+    TMP=$(mktemp -d "${TMPDIR:-/tmp}/envscan-latest.XXXXXX") || die "cannot create a temp directory"
+    fetch "$LATEST/SHA256SUMS" "$TMP/SHA256SUMS" || die "cannot read the latest release from $LATEST (offline?)"
+    latest=$(latest_version "$TMP/SHA256SUMS" "$tgt")
+    rm -rf "$TMP"
+    TMP=""
+    [ -n "$latest" ] || die "the latest release lists no asset for $tgt"
+    if ! version_ge "$1" "$latest"; then install "$latest"; fi
+    touch "$STAMP" 2>/dev/null || true
+  ) || printf 'envscan launcher: update check failed; keeping envscan %s\n' "$1" >&2
+}
+
 current=""
 if [ -x "$BIN" ]; then current=$(version_of "$BIN"); fi
 if [ -z "$current" ] || ! version_ge "$current" "$ENVSCAN_MIN_VERSION"; then
-  install
+  install "$ENVSCAN_MIN_VERSION"
+  current=$(version_of "$BIN")
 fi
+maybe_update "$current"
 
 if [ "$#" -eq 0 ]; then
   printf '%s\n' "$BIN"
