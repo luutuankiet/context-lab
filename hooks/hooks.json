@@ -7,6 +7,11 @@
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/claude/hooks/token-tracker.sh\" UserPromptSubmit",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/claude/hooks/rollup-nudge.sh\"",
+            "timeout": 5
           }
         ]
       }

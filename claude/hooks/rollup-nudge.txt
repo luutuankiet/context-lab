@@ -1,0 +1,20 @@
+ROLLUP CHECK - a background result just arrived.
+
+- Something you started still running? Reply in 1-2 lines
+  saying what you wait on. Nothing more.
+- Nothing running? End this turn with a rollup, built from
+  memory section V. The reader is cold: they read nothing
+  since their last message.
+
+Shortcuts that fail this check:
+- an anchor (↳ ...) where a question should be; anchors
+  show where something came from, never what it says
+- a table row standing in for a question; the closing
+  table only summarises questions restated above
+- "Q1-Q7 unchanged"; restate each one whole: question,
+  options with cost, your recommendation
+- dropping "Decided" because the user answered it earlier;
+  the open questions make no sense without it
+- a changed recommendation with no change-log story and
+  pseudo example
+- history the user never saw (dead ends, retries)

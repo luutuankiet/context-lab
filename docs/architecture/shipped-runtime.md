@@ -26,6 +26,8 @@ flowchart TD
   F["hooks/hooks.json<br/>plugin content"] --> G["claude/hooks/token-tracker.sh"]
   G --> H["per-session state in /tmp"]
   G --> I["additionalContext<br/>injected into the prompt"]
+  F --> J["claude/hooks/rollup-nudge.sh<br/>UserPromptSubmit only"]
+  J -->|"payload contains the task-notification tag"| K["rollup-nudge.txt<br/>printed as context"]
 ```
 
 ## The statusline is composed, not owned
@@ -180,8 +182,16 @@ points at it. It binds the token tracker to two events with a different argument
 | `UserPromptSubmit` | once, when the human submits a prompt | `UserPromptSubmit` |
 | `PostToolUse` | after every single tool call | `PostToolUse` |
 
-Both carry `"timeout": 5`. Every performance decision in the script is measured
-against that ceiling. Both address the script through `${CLAUDE_PLUGIN_ROOT}`, so
+`UserPromptSubmit` also runs `claude/hooks/rollup-nudge.sh`, with no argument.
+It shares nothing with the tracker. When the payload contains the
+`<task-notification>` tag (a background task's result arriving) it prints
+`claude/hooks/rollup-nudge.txt` beside it, a short reminder of the idle-rollup
+rule in `claude/CLAUDE.md`; on every other prompt it prints nothing. Plain stdout
+from this event is added to context, so it needs no JSON and no `jq`, and every
+error path exits 0 so it can never block a prompt.
+
+All three bindings carry `"timeout": 5`. Every performance decision in the
+tracker is measured against that ceiling. All address their script through `${CLAUDE_PLUGIN_ROOT}`, so
 what runs is published plugin content rather than anyone's working copy.
 
 > A plugin hook **merges** with a `settings.json` hook of the same event, it does

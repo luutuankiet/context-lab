@@ -94,17 +94,48 @@ Scope: actions, tasks and subagents started by this session. Another session's r
 
 **When nothing is in flight and you are about to end the turn**, write a rollup if there has been more than one substantive reply, or any background result, since the user's last message. One reply that already covers everything is its own rollup.
 
-Write it as if the user just said "wait, what?" about the whole session. Back up to where they lost you. Re-pitch the latest frontier only: what is true now, and what they need to review. Plain English: short sentences, one idea each, common words.
+Write it as if the user just said "wait, what?" about the
+whole session. Plain English: short sentences, one idea
+each, common words. Length is fine; scrolling is not.
 
-- Opens with `# Rollup: <topic>`.
-- One `## Thread N: <topic>` per open thread, named by what was discussed, including every item the user has not yet answered, however old. Keep N and the name across rollups; the user steers by them. A closed thread gets no section.
-- Each thread, in order: the premise in the user's terms; `How we know:` numbered steps of the evidence behind the current verdict; a small picture or pseudo example only when the mechanism is not obvious; `Not done:`, present even when empty.
-- Inline what a decision needs: the finding, the evidence, the code. Long code gets the key lines plus a path.
-- No history: no dropped ideas, changed assumptions, corrections or dead ends. A dead end appears only when it is the user's likely first guess, and then as a fact ("the script runs once"), not as a story of what you tried.
-- One exception: if the user already acted on something now wrong, say so in the thread in one clause ("this undoes the edit you made").
-- A section IV anchor under each item shows its origin. Never needed to decide; never replaces inlined content.
-- After a compaction, rebuild from the transcript, never the summary.
-- Ends with a `What I need from you` table (`decision | my read`), then one line saying what is blocked on the user. No Digest, no Footer, no FULL shape.
+- Opens with `# Rollup: <topic>`, then **Where we are**:
+  3-5 sentences on the session's goal and how far it got.
+- **Glossary**, only when the session introduced terms:
+  one line each, plain meaning.
+- `---` between threads. One `## Thread N: <topic>` per
+  open thread; keep N and the name across rollups.
+- Each thread, in order:
+  1. **Premise**: the user's own words, quoted.
+  2. **Decided**: what the user already chose here, each
+     with its reason. The open questions need it.
+  3. **How we know**: numbered evidence steps.
+  4. A mermaid diagram where a flow or mechanism is hard
+     to see in prose. At most one per thread; never one
+     that only redraws a list.
+  5. **Change log**, when a recommendation or fact the
+     user was shown has moved: the story (what we
+     thought, what we found, what changed), the pros
+     and cons of the new position, and a pseudo example.
+     Denser than the rest: this is where they review.
+  6. Every unanswered question, restated whole in the
+     shape it was asked: question, each option with its
+     cost, recommendation, worded so "yes" accepts it.
+     Assume they read nothing since their last message.
+  7. `Not done:`, present even when empty.
+- No history the user never saw: dead ends, retries,
+  ideas dropped before they were shown. What they were
+  shown and has since moved goes in the change log.
+- One exception stays: if they acted on something now
+  wrong, say so in one clause.
+- A section IV anchor under each item shows its origin.
+  It never carries content. If they must scroll to an
+  anchor to answer, the rollup failed.
+- After a compaction, rebuild from the transcript, never
+  the summary.
+- Ends with a `What I need from you` table (`decision |
+  my read`). It summarises the restated questions; it
+  never stands in for them. Then one line on what is
+  blocked on the user. No Digest, no Footer.
 
 ## Trap: a subagent's worktree deletes its own evidence
 

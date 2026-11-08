@@ -34,6 +34,7 @@ the marketplace published:
 | what | how it reaches a host |
 |---|---|
 | the token tracker | `hooks/hooks.json` in this plugin, bound to `UserPromptSubmit` and `PostToolUse` |
+| the rollup nudge | `hooks/hooks.json` in this plugin, a second `UserPromptSubmit` binding |
 | the statusline | `statusline.d/10-context`, discovered by the dispatcher at render time |
 | skills | `skills/stable/`, declared in `plugin.json` |
 
