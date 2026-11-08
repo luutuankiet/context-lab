@@ -4,12 +4,10 @@
     "deny": [
       "AskUserQuestion",
       "LSP",
-      "Monitor",
       "NotebookEdit",
       "PushNotification",
       "Workflow",
       "Artifact",
-      "ScheduleWakeup",
       "SendUserFile",
       "ReportFindings"
     ]
