@@ -81,6 +81,11 @@ E="$HOME/.local/bin/envscan"
 out=$(bash "$SCRIPTS/preflight.sh" tmp/20261101 2>&1); rc=$?
 [ $rc -eq 1 ] && [[ $out == *"not a topic folder"* ]] && ok "preflight refuses a folder that is not tmp/YYYYMMDD/<topic>" || no "preflight folder form" "rc=$rc $out"
 
+mkdir -p tmp/projects/demo
+out=$(bash "$SCRIPTS/preflight.sh" tmp/projects/demo 2>&1); rc=$?
+[ $rc -eq 1 ] && [[ $out == *"private project folder"* ]] && ok "preflight refuses a private project folder under tmp/projects/" || no "preflight project folder" "rc=$rc $out"
+rm -rf tmp/projects
+
 mkdir -p "$W/bare"; (cd "$W/bare" && git init -q . && mkdir -p tmp/20261101/x && printf '.env\ntmp/\n' >.gitignore)
 out=$(bash "$SCRIPTS/preflight.sh" "$W/bare/tmp/20261101/x" 2>&1); rc=$?
 [ $rc -eq 1 ] && [[ $out == *"no commit"* ]] && ok "preflight refuses a repo with no commit" || no "preflight no commit" "rc=$rc $out"

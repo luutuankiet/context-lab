@@ -33,6 +33,10 @@ until step 3 finds it.
 A nested clone or an extracted tree is moved to `tmp/refs/<key>/`, outside the topic
 folder, not promoted.
 
+**`tmp/projects/` is skipped.** It holds private project folders that are
+maintained in place and are not topic folders. Preflight refuses one, and nothing
+in it is ever listed, copied or recorded by this route.
+
 **Scope.** The menu is working output to the operator and may use resolved names.
 Everything committed (snapshot, write-up, README, commit message) names each
 sensitive thing as a bare `$KEY` and scans clean.

@@ -1,15 +1,16 @@
 ---
 name: repo-context-audit
-description: Audit and wire a repo's own agent context — AGENTS.md, docs/, the generated docs/README.md, and the .claude/skills/ index skills — reporting what is missing, orphaned, stale or unpromoted before writing. Use when AGENTS.md is absent or oversized, docs/README.md is stale, .claude/skills/ is missing, or a gitignored notes directory needs promoting.
+description: Audit and wire a repo's own agent context — AGENTS.md, docs/, the generated docs/README.md, and the .claude/skills/ index skills — reporting what is missing, orphaned, stale or unpromoted before writing. Use when AGENTS.md is absent or oversized, docs/README.md is stale, .claude/skills/ is missing, or a gitignored notes directory needs promoting. Also use to keep context that is not ready to publish, such as client work in planning or an internal decision, in a private project folder under tmp/projects/.
 metadata:
-  verified: "2026-08-18"
+  verified: "2026-11-10"
 ---
 
 # Repo context audit
 
 **One entry point.** It runs in any repository, at any time, and it is safe to
 invoke before you know anything about the one you are in. Nothing is written
-until a human has approved a menu.
+until a human has approved a menu, except inside a private project folder under
+`tmp/projects/`.
 
 ## Scan first
 
@@ -28,6 +29,11 @@ How to read the state, and the one tie-break, is
 | **cold** | no contract file, or nothing imports it | [references/route-setup.md](references/route-setup.md) |
 | **structured** | the contract stands; the index skills are missing or empty | [references/route-author-skills.md](references/route-author-skills.md) |
 | **wired** | all five checks pass | [references/route-wrapup.md](references/route-wrapup.md) |
+
+**Private project context is a route you enter on request, not a state.** Context
+that is not ready to publish goes in `tmp/projects/<slug>/`, by
+[references/route-private.md](references/route-private.md). The scanner never
+routes there.
 
 ## The two flags are orthogonal to state
 
@@ -55,6 +61,12 @@ approval hands the next session a blessing whose contents it never showed anyone
 **On re-run, patch and never rewrite.** Hand-written prose in a converted
 repository is the human's, not yours.
 
+**One exemption: inside `tmp/projects/` there is no menu.** Those folders are
+ignored by git and nothing in them leaves the machine, so you write there at your
+own discretion and report afterwards what you wrote and what you left alone. The
+exemption is that path and nothing else: the menu applies again the moment
+anything is written outside it.
+
 ## Which reference, and when
 
 | load | when |
@@ -65,6 +77,7 @@ repository is the human's, not yours.
 | [references/route-promote.md](references/route-promote.md) | the notes flag is set |
 | [references/route-repair.md](references/route-repair.md) | the drift flag is set |
 | [references/route-wrapup.md](references/route-wrapup.md) | wired, no flags |
+| [references/route-private.md](references/route-private.md) | asked to keep context that is not ready to publish, or working in `tmp/projects/` |
 | [references/page-formats.md](references/page-formats.md) | any route that writes a page |
 | [references/sort-and-ladder.md](references/sort-and-ladder.md) | setup, promote, wrapup |
 | [references/topology-check.md](references/topology-check.md) | the second gate of promote only |
@@ -88,5 +101,9 @@ repository is the human's, not yours.
   defeats the only control that directory ever had. The one exception is a runnable
   file, or tool output a page cites, from a dated `tmp/` folder, on the opt-in
   promote-tmp route, after dehydration and a clean scan; prose is never copied.
+  A project under `tmp/projects/` is a private notes directory for this rule:
+  writing inside it needs no menu, and copying out of it is as forbidden as ever.
+  Rewrite, never copy.
 - **Never hand-maintain an index.** A hand-written one silently orphans pages:
-  the page still exists, nothing links to it, and nobody notices for a year.
+  the page still exists, nothing links to it, and nobody notices for a year. This
+  holds inside a project too.

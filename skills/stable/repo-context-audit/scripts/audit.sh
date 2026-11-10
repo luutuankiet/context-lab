@@ -261,7 +261,10 @@ done
 
 found_notes=0
 for name in $NOTE_DIRS; do
-  for d in $(find "$REPO" -maxdepth 3 -type d -name "$name" ! -path '*/.git/*' 2>/dev/null | LC_ALL=C sort); do
+  # tmp/projects/ holds private project folders, each a small repo layout of its
+  # own. They are never promoted, so a project that happens to be called
+  # "notes" is not working notes of this repo.
+  for d in $(find "$REPO" -maxdepth 3 -type d -name "$name" ! -path '*/.git/*' ! -path "$REPO/tmp/projects/*" 2>/dev/null | LC_ALL=C sort); do
     if git -C "$REPO" ls-files --error-unmatch "$d" >/dev/null 2>&1; then
       continue   # already tracked: it is documentation, not working notes
     fi

@@ -19,7 +19,7 @@ audit.sh [--repo DIR] [--stale-days N] [--notes-dir NAME]...
 | 5 | the emitted skills | either `.claude/skills/` index skill is absent, or its generated block is empty |
 | 6 | orphan pages | a top-level `docs/*.md` carries no `title:`/`summary:`, so no collection claims it |
 | 7 | stale dates | a page's `verified:` is missing, unparseable, or older than the threshold |
-| 8 | unpromoted notes | an untracked working-notes directory exists, reported by byte count |
+| 8 | unpromoted notes | an untracked working-notes directory exists, reported by byte count. Nothing under `tmp/projects/` is ever counted |
 
 Check 2 also reports when `AGENTS.md` is over 4 KB. That is a **note, not a
 failure** — a contract can legitimately be a little over budget, and it is the
@@ -68,6 +68,14 @@ is the most frequent route, and it must never have to load
 [page-formats.md](page-formats.md) to put back a key. A script is the cheapest
 carrier of a schema — it costs nothing resident and it emits only the relevant
 part.
+
+## Run against a private project
+
+`--repo tmp/projects/<slug>` scans a private project folder as if it were a
+repository root; it needs no git repository of its own. A project builds its
+collections and index skills lazily, so `structured` with missing collections is
+its normal state for a while, not a fault. See
+[route-private.md](route-private.md).
 
 ## What it deliberately does not check
 

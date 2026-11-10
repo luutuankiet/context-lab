@@ -38,6 +38,11 @@ case $abs in
   "$root"/*) rel=${abs#"$root"/} ;;
   *) fail "$1 is not under the repo root" ;;
 esac
+# tmp/projects/ holds private project folders. They are maintained in place and
+# never promoted, so they are refused by name before the form check.
+case $rel in
+  tmp/projects | tmp/projects/*) fail "$rel is a private project folder, not a topic folder; projects are never promoted" ;;
+esac
 case $rel in
   tmp/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]/?*) ;;
   *) fail "$rel is not a topic folder of the form tmp/YYYYMMDD/<topic>/" ;;

@@ -153,5 +153,147 @@ for f in structured wired drifted; do
 done
 
 echo
+echo "======== projects.sh: private projects under tmp/projects/"
+
+PROJECTS="$HERE/../scripts/projects.sh"
+GEN="$HERE/../scripts/gen-docs-index.sh"
+W=$(mktemp -d "${TMPDIR:-/tmp}/projects-test.XXXXXX")
+trap 'rm -rf "$W"' EXIT
+W=$(cd "$W" && pwd -P)
+
+# A host repo that ignores tmp/, holding two projects with fixed file times.
+# Times are set with `touch -t`, so no assertion depends on today's date.
+H="$W/host"
+mkdir -p "$H/tmp/projects/alpha/raw" "$H/tmp/projects/beta"
+(cd "$H" && git init -q . && printf 'tmp/\n' >.gitignore)
+printf '@AGENTS.md\n' >"$H/tmp/projects/alpha/CLAUDE.md"
+printf '# Alpha\n\nAgent contract for alpha.\n' >"$H/tmp/projects/alpha/AGENTS.md"
+printf '# Alpha\n\nWarehouse move for the alpha client.\n' >"$H/tmp/projects/alpha/README.md"
+printf 'capture\n' >"$H/tmp/projects/alpha/raw/cap.txt"
+printf '# Beta\n\nPricing study, internal only.\n' >"$H/tmp/projects/beta/AGENTS.md"
+touch -t 202001010000 "$H/tmp/projects/alpha/CLAUDE.md" "$H/tmp/projects/alpha/AGENTS.md" "$H/tmp/projects/alpha/README.md"
+touch -t 202003050000 "$H/tmp/projects/alpha/raw/cap.txt"
+touch -t 202002020000 "$H/tmp/projects/beta/AGENTS.md"
+
+out=$("$PROJECTS" --repo "$H" 2>&1); rc=$?
+[[ $rc -eq 0 ]] && ok "the listing exits 0" || no "the listing exited $rc: $out"
+a=$(grep -n '^alpha ' <<<"$out" | cut -d: -f1)
+b=$(grep -n '^beta ' <<<"$out" | cut -d: -f1)
+[[ -n $a && -n $b && $a -lt $b ]] \
+  && ok "newest project first: alpha before beta" || no "listing order was: $out"
+row=$(grep '^alpha ' <<<"$out")
+[[ $row == *"2020-03-05"* ]] \
+  && ok "the date is the newest file anywhere in the project" || no "alpha row was: $row"
+[[ $row =~ [[:space:]]4[[:space:]] ]] \
+  && ok "the file count covers the whole project" || no "alpha row was: $row"
+[[ $row == *"Warehouse move for the alpha client."* ]] \
+  && ok "scope comes from README.md when there is one" || no "alpha row was: $row"
+row=$(grep '^beta ' <<<"$out")
+[[ $row == *"Pricing study, internal only."* ]] \
+  && ok "scope falls back to AGENTS.md" || no "beta row was: $row"
+
+mkdir -p "$H/tmp/projects/gamma"
+printf '# Gamma\n\nFresh today.\n' >"$H/tmp/projects/gamma/AGENTS.md"
+out=$("$PROJECTS" --repo "$H" --since 2 2>&1)
+[[ $out == *gamma* && $out != *alpha* && $out != *beta* ]] \
+  && ok "--since keeps only projects touched within that many days" || no "--since 2 printed: $out"
+before=$(cd "$H" && find . -type f ! -path './.git/*' | LC_ALL=C sort | cksum)
+"$PROJECTS" --repo "$H" >/dev/null 2>&1
+after=$(cd "$H" && find . -type f ! -path './.git/*' | LC_ALL=C sort | cksum)
+[[ $before == "$after" ]] && ok "the listing writes nothing" || no "the listing changed the tree"
+
+echo
+echo "======== projects.sh --init"
+
+cp "$H/.git/info/exclude" "$W/exclude.before" 2>/dev/null || : >"$W/exclude.before"
+out=$("$PROJECTS" --repo "$H" --init delta 2>&1); rc=$?
+P="$H/tmp/projects/delta"
+[[ $rc -eq 0 && -f $P/CLAUDE.md && -f $P/AGENTS.md ]] \
+  && ok "--init creates CLAUDE.md and AGENTS.md" || no "--init delta: rc=$rc $out"
+grep -q '@AGENTS\.md' "$P/CLAUDE.md" 2>/dev/null \
+  && ok "CLAUDE.md imports @AGENTS.md" || no "CLAUDE.md does not import the contract"
+grep -q 'a line in `TRACK.md`' "$P/AGENTS.md" 2>/dev/null \
+  && ok "AGENTS.md carries the private wrap-up block" || no "AGENTS.md has no private block"
+[[ ! -e $P/docs && ! -e $P/.claude && ! -e $P/.git ]] \
+  && ok "nothing else is created: no docs/, no skills, no git" || no "--init created more than two files"
+{ cmp -s "$H/.git/info/exclude" "$W/exclude.before" || [[ ! -e $H/.git/info/exclude && ! -s $W/exclude.before ]]; } \
+  && ok "tmp/ already ignored: .git/info/exclude is untouched" || no ".git/info/exclude changed in a repo that ignores tmp/"
+
+printf 'mine\n' >>"$P/AGENTS.md"
+sum=$(cksum <"$P/AGENTS.md")
+out=$("$PROJECTS" --repo "$H" --init delta 2>&1); rc=$?
+[[ $rc -ne 0 && $(cksum <"$P/AGENTS.md") == "$sum" ]] \
+  && ok "--init refuses an existing slug and overwrites nothing" || no "second --init delta: rc=$rc $out"
+out=$("$PROJECTS" --repo "$H" --init 'Not A Slug' 2>&1); rc=$?
+[[ $rc -ne 0 && ! -e "$H/tmp/projects/Not A Slug" ]] \
+  && ok "--init refuses a slug that is not kebab-case" || no "--init accepted a bad slug: $out"
+
+# A host repo that does not ignore tmp/.
+O="$W/open"
+mkdir -p "$O" && (cd "$O" && git init -q .)
+out=$("$PROJECTS" --repo "$O" --init epsilon 2>&1); rc=$?
+[[ $rc -eq 0 ]] && grep -q '^tmp/projects/$' "$O/.git/info/exclude" 2>/dev/null \
+  && ok "tmp/ not ignored: the guard appends to .git/info/exclude" || no "guard did not write the exclude: rc=$rc $out"
+(cd "$O" && git check-ignore -q tmp/projects/epsilon/AGENTS.md) \
+  && ok "and git now ignores the project" || no "the project is still visible to git"
+[[ ! -e $O/.gitignore ]] \
+  && ok "and no committed ignore file is written" || no "the guard wrote a .gitignore"
+"$PROJECTS" --repo "$O" --init zeta >/dev/null 2>&1
+[[ $(grep -c '^tmp/projects/$' "$O/.git/info/exclude") == 1 ]] \
+  && ok "the guard appends once, not per project" || no "the exclude line was appended twice"
+
+# Outside any git repository.
+N="$W/plain"
+mkdir -p "$N"
+out=$(GIT_CEILING_DIRECTORIES="$W" "$PROJECTS" --repo "$N" --init eta 2>&1); rc=$?
+[[ $rc -eq 0 && -f $N/tmp/projects/eta/AGENTS.md ]] \
+  && ok "outside a git repository --init carries on" || no "--init outside git: rc=$rc $out"
+
+echo
+echo "======== projects.sh --reindex"
+
+mkdir -p "$P/docs/traps"
+printf -- '---\nsymptom: the export is empty on Mondays\narea: export\nverified: 2020-01-01\n---\n\n# Empty export\n' \
+  >"$P/docs/traps/EMPTY_EXPORT.md"
+touch -t 202001010000 "$P/AGENTS.md" "$H/tmp/projects/beta/AGENTS.md"
+: >"$W/stamp"; touch -t 202101010000 "$W/stamp"
+out=$("$PROJECTS" --repo "$H" --reindex 2>&1); rc=$?
+[[ $rc -eq 0 ]] && grep -q 'EMPTY_EXPORT' "$P/docs/README.md" 2>/dev/null \
+  && ok "--reindex generates the index of a project that has pages" || no "--reindex: rc=$rc $out"
+[[ $P/AGENTS.md -nt $W/stamp ]] \
+  && ok "and touches its AGENTS.md" || no "AGENTS.md was not touched"
+[[ ! -e $H/tmp/projects/beta/docs && ! $H/tmp/projects/beta/AGENTS.md -nt $W/stamp ]] \
+  && ok "a project with no pages is left alone" || no "--reindex touched a project with no pages"
+"$GEN" --check --repo "$P" >/dev/null 2>&1 \
+  && ok "the generator's --check passes on a project with one collection" || no "--check fails on a partial project"
+touch -t 202001010000 "$P/AGENTS.md"
+"$PROJECTS" --repo "$H" --reindex beta >/dev/null 2>&1
+[[ ! $P/AGENTS.md -nt $W/stamp ]] \
+  && ok "--reindex <slug> touches only the project named" || no "--reindex beta touched delta"
+out=$("$PROJECTS" --repo "$H" --reindex no-such-project 2>&1); rc=$?
+[[ $rc -ne 0 ]] && ok "--reindex of an unknown slug fails" || no "--reindex accepted an unknown slug"
+
+echo
+echo "======== audit.sh and projects"
+
+out=$("$AUDIT" --repo "$P" --stale-days 100000 2>&1); rc=$?
+[[ $rc -eq 0 ]] && grep -Eq '^structured ' <<<"$out" \
+  && ok "a non-git project with one collection has a defined state: structured" || no "audit on a project: rc=$rc $out"
+out=$(GIT_CEILING_DIRECTORIES="$W" "$AUDIT" --repo "$N/tmp/projects/eta" 2>&1); rc=$?
+[[ $rc -eq 0 ]] && grep -Eq '^structured ' <<<"$out" \
+  && ok "and so does a fresh project outside any git repository" || no "audit outside git: rc=$rc $out"
+
+mkdir -p "$H/tmp/projects/notes"
+printf 'x\n' >"$H/tmp/projects/notes/AGENTS.md"
+out=$("$AUDIT" --repo "$H" 2>&1)
+[[ $out == *" 0 bytes unpromoted"* && $out != *"tmp/projects/notes"* ]] \
+  && ok "the root scanner does not count a notes-named folder under tmp/projects/" \
+  || no "root audit counted a project: $(grep -E 'unpromoted' <<<"$out")"
+mkdir -p "$H/tmp/notes"; printf 'x\n' >"$H/tmp/notes/a.md"
+out=$("$AUDIT" --repo "$H" 2>&1)
+[[ $out == *"tmp/notes -- "* ]] \
+  && ok "while a notes folder elsewhere under tmp/ still counts" || no "check 8 stopped seeing tmp/notes"
+
+echo
 echo "======== $pass passed, $fail failed"
 [[ $fail -eq 0 ]]
