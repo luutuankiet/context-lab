@@ -67,6 +67,7 @@ it with a new one rather than editing it.
 - [No outbound gate on agent tool calls](../../../docs/adr/0016-no-outbound-gate-on-agent-tool-calls.md)
 - [Promotion keeps cited tool output, is opt-in, and ends in the context audit](../../../docs/adr/0017-promotion-keeps-cited-output-and-is-opt-in.md)
 - [Big directories move out of promotion and are never recorded](../../../docs/adr/0018-big-directories-move-out-and-are-never-recorded.md)
+- [Private project context lives under tmp/projects/ and is written without a menu](../../../docs/adr/0019-private-project-context-is-written-without-a-menu.md)
 
 <!-- END GENERATED INDEX -->
 

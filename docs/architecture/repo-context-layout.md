@@ -1,7 +1,7 @@
 ---
 title: How this repo holds its own context
 covers: where agent-facing context lives in this repo, what is always loaded, and how the generated index stays honest
-verified: 2026-08-18
+verified: 2026-11-10
 ---
 
 # How this repo holds its own context
@@ -86,6 +86,26 @@ ADRs are `NNNN-kebab-slug.md`, sequentially numbered, created lazily. A merged A
 is immutable: supersede it with a new one that names what it replaces, rather than
 editing it. The tracker holds the argument; the ADR holds the conclusion; the pull
 request links them.
+
+## Context that is not ready to publish
+
+The four places above hold published context. Work that is not final, such as
+client work in planning or a decision agreed only internally, goes in a private
+project: a plain folder at `tmp/projects/<slug>/`, ignored by git, with the same
+layout as a repo root built lazily. Why is
+[ADR 0019](../adr/0019-private-project-context-is-written-without-a-menu.md).
+
+| what | where, under `skills/stable/repo-context-audit/` |
+|---|---|
+| the procedure an agent follows | `references/route-private.md` |
+| listing, `--init`, `--reindex`, and the ignore guard | `scripts/projects.sh` |
+| the wrap-up block a project's `AGENTS.md` ends in | `templates/AGENTS-private-block.md` |
+| the scanner's blindness to projects | check 8 of `scripts/audit.sh`, the `! -path "$REPO/tmp/projects/*"` clause |
+| promotion's refusal of a project | `skills/stable/promote-tmp/scripts/preflight.sh`, the `tmp/projects` case |
+| the tests | `tests/run.sh`, from the `projects.sh` heading down |
+
+The scanner and the generator needed no project mode: both take `--repo DIR` and
+neither requires `DIR` to be a git repository.
 
 ## What is deliberately not here
 

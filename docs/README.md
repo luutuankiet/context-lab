@@ -15,7 +15,7 @@ something is implemented.
 
 | page | covers | verified |
 |---|---|---|
-| [How this repo holds its own context](architecture/repo-context-layout.md) | where agent-facing context lives in this repo, what is always loaded, and how the generated index stays honest | 2026-08-18 |
+| [How this repo holds its own context](architecture/repo-context-layout.md) | where agent-facing context lives in this repo, what is always loaded, and how the generated index stays honest | 2026-11-10 |
 | [What this repo runs on a host](architecture/shipped-runtime.md) | where the statusline line comes from, what the hooks do on every prompt and tool call, how a subagent is shown its own size and told to hand off, and why the two never touch | 2026-10-11 |
 | [The skills collection](architecture/skills-collection.md) | where the distributed skills live, how the stable bucket ships as a plugin, and why no third-party skill is vendored here | 2026-08-18 |
 | [The user-tier installer](architecture/user-tier-installer.md) | how a host gets its Claude Code config, what install.sh actually writes, and what --check can and cannot prove | 2026-08-23 |
@@ -78,5 +78,6 @@ it with a new one rather than editing it.
 - [No outbound gate on agent tool calls](adr/0016-no-outbound-gate-on-agent-tool-calls.md)
 - [Promotion keeps cited tool output, is opt-in, and ends in the context audit](adr/0017-promotion-keeps-cited-output-and-is-opt-in.md)
 - [Big directories move out of promotion and are never recorded](adr/0018-big-directories-move-out-and-are-never-recorded.md)
+- [Private project context lives under tmp/projects/ and is written without a menu](adr/0019-private-project-context-is-written-without-a-menu.md)
 
 <!-- END GENERATED INDEX -->
