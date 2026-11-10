@@ -78,6 +78,17 @@ what the wrap-up block in the project's `AGENTS.md` says.
 Dated `tmp/YYYYMMDD/<topic>/` folders stay where they are. They are raw evidence:
 cite them from a project page by path, and never move them into the project.
 
+**Point, do not copy.** A project is not self-contained: it sits inside a
+repository and leans on it. When a page needs the repository's code, a published
+page, a dated `tmp/` folder or a neighbouring project, cite it by its path from
+the repository root, in code formatting, with a line number where one helps:
+`src/load.py:40`, `docs/reference/hosts.md`, `tmp/projects/<other-slug>/TRACK.md`.
+Do not copy the file or paste its contents into the project; a copy goes stale
+the day the original changes, and nothing reports it. Write root paths as code
+and not as `../` links: a chain of `../` breaks the moment the project moves.
+Keep a copy only of something that exists nowhere on this machine, such as a
+client's email or an export from a system you cannot reach again.
+
 ## 4. Maintain it like a repository
 
 Once a project is loaded, treat it exactly as you would a repository root. The

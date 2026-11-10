@@ -102,7 +102,8 @@ scope() {
       incomment { if (index($0, "-->")) incomment = 0; next }
       /^[ \t]*<!--/ { if (!index($0, "-->")) incomment = 1; next }
       /^[ \t]*$/ || /^@/ || /^[|>`]/ { next }
-      /^#/ { if (head == "") { head = $0; sub(/^#+[ \t]*/, "", head) } next }
+      # The scope is the opening paragraph: a second heading ends the search.
+      /^#/ { if (head != "") exit; head = $0; sub(/^#+[ \t]*/, "", head); next }
       { print; found = 1; exit }
       END { if (!found && head != "") print head }
     ' "$f" | cut -c1-80
@@ -176,6 +177,9 @@ if [ "$MODE" = init ]; then
     printf '     who it is for, and what is in and out of scope. -->\n\n'
     printf '## Hard constraints\n\n'
     printf '<!-- The few facts that shape most decisions here. -->\n\n'
+    printf -- '- **Point, do not copy.** This project lives inside a repository. A path here\n'
+    printf '  that does not start inside this folder is from the repository root. Cite\n'
+    printf '  code, pages and other projects by that path; never keep a copy of them here.\n\n'
     # The first comment of the template is a note to whoever appends it, not
     # part of the block; the block starts at its seam marker.
     awk -v gen="$GENCMD" '

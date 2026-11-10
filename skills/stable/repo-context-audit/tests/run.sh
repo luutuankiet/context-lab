@@ -218,6 +218,8 @@ grep -q 'a line in `TRACK.md`' "$P/AGENTS.md" 2>/dev/null \
   && ok "nothing else is created: no docs/, no skills, no git" || no "--init created more than two files"
 { cmp -s "$H/.git/info/exclude" "$W/exclude.before" || [[ ! -e $H/.git/info/exclude && ! -s $W/exclude.before ]]; } \
   && ok "tmp/ already ignored: .git/info/exclude is untouched" || no ".git/info/exclude changed in a repo that ignores tmp/"
+grep -q 'Point, do not copy' "$P/AGENTS.md" 2>/dev/null \
+  && ok "AGENTS.md tells the reader to cite repository paths, not copy" || no "AGENTS.md has no point-do-not-copy rule"
 row=$("$PROJECTS" --repo "$H" | grep '^delta ')
 [[ $row == *delta && $row != *Indexed* ]] \
   && ok "an unfilled project's scope is its heading, not the standard block" || no "delta row was: $row"
