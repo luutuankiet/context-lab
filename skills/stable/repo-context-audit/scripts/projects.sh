@@ -97,6 +97,8 @@ scope() {
     awk '
       NR == 1 && $0 == "---" { fm = 1; next }
       fm { if ($0 == "---") fm = 0; next }
+      # Below this marker is the pointer every project carries, never its scope.
+      /Standard block\./ { exit }
       incomment { if (index($0, "-->")) incomment = 0; next }
       /^[ \t]*<!--/ { if (!index($0, "-->")) incomment = 1; next }
       /^[ \t]*$/ || /^@/ || /^[|>`]/ { next }

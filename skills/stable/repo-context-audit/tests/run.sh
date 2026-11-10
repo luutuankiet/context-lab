@@ -218,6 +218,9 @@ grep -q 'a line in `TRACK.md`' "$P/AGENTS.md" 2>/dev/null \
   && ok "nothing else is created: no docs/, no skills, no git" || no "--init created more than two files"
 { cmp -s "$H/.git/info/exclude" "$W/exclude.before" || [[ ! -e $H/.git/info/exclude && ! -s $W/exclude.before ]]; } \
   && ok "tmp/ already ignored: .git/info/exclude is untouched" || no ".git/info/exclude changed in a repo that ignores tmp/"
+row=$("$PROJECTS" --repo "$H" | grep '^delta ')
+[[ $row == *delta && $row != *Indexed* ]] \
+  && ok "an unfilled project's scope is its heading, not the standard block" || no "delta row was: $row"
 
 printf 'mine\n' >>"$P/AGENTS.md"
 sum=$(cksum <"$P/AGENTS.md")
