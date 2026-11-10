@@ -1,10 +1,11 @@
 ---
 name: detach
-description: Start a named background Claude session that outlives this one, ready to attach to. Takes the task, and optionally a name.
-disable-model-invocation: true
+description: Main thread only, never a subagent. Start a named background Claude session that outlives this one, for a new task or to hand this session's own work to a fresh one.
 ---
 
 # Detach
+
+Only the main thread runs this. If another agent spawned you, stop here and return a handoff to that agent instead.
 
 Start one independent session with `claude --bg`. It is a separate process, so closing this session leaves it running. The new session starts cold, knowing only its prompt.
 
@@ -13,6 +14,7 @@ Start one independent session with `claude --bg`. It is a separate process, so c
 2. **Write the hand-off.** A task that fits in a sentence goes straight in the prompt. Anything that leans on this session goes in `<repo root>/tmp/YYYYMMDD/<name>/<name>-brief.md`. The brief carries the goal, the links and files to read, the rules that apply, the skills to call, and how to end. Done when a reader with no access to this conversation could start work.
    - Work with a person in the loop, such as a grilling session: open the ticket, call its skills, ask the first round, then wait for the user to attach.
    - Unattended work: name the results file, then wait to answer questions from later sessions.
+   - Handing off this session's own work: the handoff file you already wrote is the brief, so write no second file. Launch in the checkout form, from the directory you are working in.
 
 3. **Choose where it works.** Use the checkout unless the task needs isolation. Work there shares gitignored files such as `tmp/` and `.env`, and it shares the branch with any other session editing that checkout. Choose a worktree only when the task is cleanly isolated: it needs none of those gitignored files, and its edits could collide with other work. A worktree session gets a fresh copy under `.claude/worktrees/` before its first edit, so give it absolute paths into the main checkout for anything it must read or leave behind, including the results file.
 

@@ -1,6 +1,3 @@
-- **soft reminder** to the user to compact / handoff to new session when the running context gets around 200k tokens.
-
-
 ## Agent Reporting Standard
 
 ### I. Report shape

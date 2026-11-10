@@ -83,6 +83,13 @@ fi
 SUBAGENT_CHECKPOINT="${SUBAGENT_CHECKPOINT:-120000}"
 SUBAGENT_CEILING="${SUBAGENT_CEILING:-160000}"
 
+# The main thread cannot compact itself either (only the user can), so past
+# these lines it hands off to a fresh session. Its wrap-up is heavier than a
+# subagent's (collect subagents, commit, launch the successor), so the gap
+# between the two lines is its runway.
+ROOT_CHECKPOINT="${ROOT_CHECKPOINT:-140000}"
+ROOT_CEILING="${ROOT_CEILING:-200000}"
+
 # ---- Derive a filesystem-safe, per-session state key ----
 # Strip everything outside [A-Za-z0-9._-] so the key can never contain a slash
 # and therefore can never escape /tmp; cap the length to stay under NAME_MAX.
@@ -354,6 +361,38 @@ ${handoff_rules}"
   else
     payload="${payload}; past the subagent checkpoint: finish if 80% done, else hand off; hard handoff at $(fmt $SUBAGENT_CEILING)."
   fi
+fi
+
+# ---- Main thread wrap-up ----
+# Same staging as above. The handoff file keeps the subagent shape; the main
+# thread differs only in its last step, which launches its own successor.
+if [ -z "$agent_id" ] && [ "$current_context" -ge "$ROOT_CHECKPOINT" ]; then
+  STAGE_FILE="/tmp/cc-token-${state_key}-stage"
+  prev_stage=$(cat "$STAGE_FILE" 2>/dev/null || echo 0)
+  prev_stage=$(printf '%s' "$prev_stage" | tr -cd '0-9')
+  [ -z "$prev_stage" ] && prev_stage=0
+  stage=1
+  [ "$current_context" -ge "$ROOT_CEILING" ] && stage=2
+  echo "$stage" > "$STAGE_FILE"
+
+  root_rules="HANDOFF: 1. Commit all work on your branch, a WIP commit if unfinished. 2. Write <repo root>/tmp/YYYYMMDD/<topic>/handoff.md (today's date, untracked) for a fresh session with no context: goal and ticket link; done, with commit SHAs; state (branch, WIP SHA, worktree path); verified vs not verified; the next 3 steps; traps you hit; suggested skills. Under state also give the generation (this session is g1 unless its own brief says otherwise) and whether the session is unattended or needs user input: unattended only if the user said so, in which case quote them; otherwise the next session reads the handoff and waits for the user. Link specs, diffs and issues instead of copying them; never write secrets. 3. Call the detach skill with the handoff as the brief, launched from the directory you are working in, not a new worktree, named <topic>-g<next generation>. 4. Stop. Your final message gives the new session's name, its attach command and the handoff path."
+  if [ "$stage" -eq 2 ] && [ "$prev_stage" -lt 2 ]; then
+    payload="${payload}
+MAIN THREAD CEILING ($(fmt $ROOT_CEILING)): you cannot compact yourself and are past the size where quality drops. Hand off NOW, however close you are to done. Do not wait for running subagents: list each one in the handoff with its task and branch.
+${root_rules}"
+  elif [ "$stage" -eq 2 ]; then
+    payload="${payload}; past the main thread ceiling: hand off now, without waiting for subagents."
+  elif [ "$prev_stage" -lt 1 ]; then
+    payload="${payload}
+MAIN THREAD CHECKPOINT ($(fmt $ROOT_CHECKPOINT)): you cannot compact yourself. Estimate how much of your task is done. At 80% or more, finish it and report as normal. Below 80%, wrap up: start no new subagents, wait for the running ones, do not replace one that returns a handoff (cite its handoff path in yours), then hand off. Either way, at $(fmt $ROOT_CEILING) you must hand off.
+${root_rules}"
+  else
+    payload="${payload}; past the main thread checkpoint: finish if 80% done, else wrap up and hand off; hard handoff at $(fmt $ROOT_CEILING)."
+  fi
+elif [ -z "$agent_id" ]; then
+  # Back under the line means the user compacted: forget the stage so the full
+  # rules are sent again on the next crossing, not just the one-line reminder.
+  rm -f "/tmp/cc-token-${state_key}-stage"
 fi
 
 jq -n \

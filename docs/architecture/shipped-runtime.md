@@ -208,7 +208,7 @@ then removed (ADR 0016); the only check on a known `.env` value leaving is the g
 full the context window is. Its whole design problem is staying under five
 seconds on a transcript that grows all session.
 
-**State is per session** (`:89`). The key is derived from the payload's session
+**State is per session** (`:96`). The key is derived from the payload's session
 id, falling back to a hash of the transcript path and then to the literal
 `default`. It is passed through `tr -cd 'A-Za-z0-9._-'`, which is a containment
 control rather than tidiness: with no `/` possible the key cannot escape the
@@ -217,39 +217,39 @@ temporary directory whatever the payload contains. Three files hang off that key
 Sessions run in parallel, and a single shared state file would have them
 clobbering each other's arithmetic continuously.
 
-**The read is bounded** (`:163`). The structured file carries a watermark: how
+**The read is bounded** (`:170`). The structured file carries a watermark: how
 many transcript lines the previous invocation had already consumed. This
 invocation starts exactly there, so cost is proportional to new activity rather
 than to session length. Cumulative totals stay exact because they are carried
-forward and added to (`:248`), never recomputed.
+forward and added to (`:255`), never recomputed.
 
 Three guards keep that honest:
 
-- A `cksum` of the first 2 KB of the transcript is stored as `head_sig` (`:148`).
+- A `cksum` of the first 2 KB of the transcript is stored as `head_sig` (`:155`).
   If the file is ever rewritten in place rather than appended to — a compaction,
-  a rewind — the signature changes, the guard at `:163` rejects the stale state,
+  a rewind — the signature changes, the guard at `:170` rejects the stale state,
   and the whole file is rescanned.
 - A cold start reads the entire file only up to a 128 MB ceiling (`:46`), chosen
   because a streaming `jq` over 64 MB measured about 0.75 s, leaving more than
   three seconds of the five-second timeout as margin. Beyond it the script seeds
   from the last 400 lines and sets `cumulative_complete: false` in its output —
   it reports a number it knows is partial and says so, rather than quietly lying.
-- `head -n "$delta_lines"` after the `tail` (`:202`) looks redundant and is not.
+- `head -n "$delta_lines"` after the `tail` (`:209`) looks redundant and is not.
   It drops any partial trailing line the writer is still flushing, which keeps
   the watermark on a complete-line boundary. Without it one half-written record
   would corrupt the next invocation's arithmetic.
 
 Concurrent invocations within one session are serialised with `mkdir`, not
-`flock` (`:125`). `mkdir` is atomic on every filesystem and available on every
+`flock` (`:132`). `mkdir` is atomic on every filesystem and available on every
 host; `flock` is a Linux binary that macOS does not ship, so an earlier
 `command -v flock` guard silently left every macOS client in the fleet with no
 lock at all, and no error to notice.
 
 ### Two numbers, and why they differ so much
 
-`current_context` (`:240`) is a **snapshot**: what the single most recent API
+`current_context` (`:247`) is a **snapshot**: what the single most recent API
 call consumed, summing input, both cache figures and output. `total_session`
-(`:255`) is a **lifetime sum** across every call. Observed on one ordinary
+(`:262`) is a **lifetime sum** across every call. Observed on one ordinary
 session of twenty-six assistant turns:
 
 ```json
@@ -269,11 +269,11 @@ tracked: one answers "will this fit", the other answers "what did this cost".
 
 ### How a shell script gets a sentence into the model
 
-The script's stdout is JSON with an `additionalContext` field (`:365`), which is
+The script's stdout is JSON with an `additionalContext` field (`:404`), which is
 injected into the prompt as though the system had said it. On
 `UserPromptSubmit` that string carries a standing instruction to report the
 running figure to the reader; on `PostToolUse` it is the bare context line
-(`:328`).
+(`:335`).
 
 That asymmetry is a cost decision. The instruction ships once per turn. Repeating
 seven lines of directive on every tool call — of which there may be dozens per
@@ -292,23 +292,46 @@ does anything: the system prompt and tool definitions alone.
 
 **No number crosses between agents or sessions.** Each figure is read from one
 agent's own transcript, so another agent's calls are never in it. The state key
-gets `-agent-<id>` appended **after** the 64-character cap (`:100`); appended
+gets `-agent-<id>` appended **after** the 64-character cap (`:107`); appended
 before it, a long session id would cut the suffix off and two sibling agents
 would share one state key. Even then the numbers would stay right, because the
 carried-forward totals are reused only when the stored `transcript_path`
-matches (`:163`); what would be shared is the warning stage below. If the
+matches (`:170`); what would be shared is the warning stage below. If the
 derived file is missing, the script exits silently: no number at all, never a
 wrong one. `test-install.sh` fires fifteen parallel calls across sibling agents,
 the same agent id in two sessions, and a very long session id, and checks that
 each call sees only its own figure.
 
-**Two lines, one warning each** (`:334`). At 120k (`SUBAGENT_CHECKPOINT`) the
+**Two lines, one warning each** (`:341`). At 120k (`SUBAGENT_CHECKPOINT`) the
 agent is told to estimate its progress: at 80% or more it finishes, below that
 it commits WIP, writes `<repo>/tmp/YYYYMMDD/<topic>/handoff.md` and stops. At
 160k (`SUBAGENT_CEILING`) the handoff is mandatory. The full rules go out once
 per line crossed, recorded in a `-stage` file next to the other state; every
 later tool call gets a one-line reminder. The figure can lag one tool result,
 because the transcript is written asynchronously.
+
+### On the main thread
+
+The main thread cannot compact itself either: only the person at the keyboard
+can. So it gets the same two lines, later, and a different last step (`:369`).
+At 140k (`ROOT_CHECKPOINT`) it estimates its progress: at 80% or more it
+finishes; below that it starts no new subagents, waits for the running ones,
+and hands off. At 200k (`ROOT_CEILING`) it hands off without waiting, listing
+any subagent still running. The checkpoint sits below the ceiling by more than a
+subagent's does because the wrap-up itself costs context: every returning
+subagent report, the commit and the launch all land on top of the figure.
+
+The handoff file is the one a subagent writes, with the generation number and
+one fact added under its state: whether the session is unattended. That is
+true only when the person said so, quoted; otherwise the next session reads the
+handoff and waits. The last step is the `detach` skill, with the handoff as its
+brief, launched from the same directory and named `<topic>-g<N>`, so a chain of
+sessions can be read back afterwards. Nothing bounds the length of that chain
+but the task ending or the account's quota.
+
+When the figure falls back under the checkpoint, the session was compacted, and
+the `-stage` file is removed (`:392`) so the next crossing sends the full rules
+again and not only the reminder.
 
 ## The general rule
 
