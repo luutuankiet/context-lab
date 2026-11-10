@@ -205,8 +205,8 @@ L="$S-$(printf 'x%.0s' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 
 for s in "$S" "$S-other" "$L"; do mkdir -p "$T/proj/$s/subagents"; use "$T/proj/$s.jsonl" 5000; done
 use "$T/proj/$S/subagents/agent-b2.jsonl" 21000
 use "$T/proj/$S-other/subagents/agent-a1.jsonl" 31000
-use "$T/proj/$L/subagents/agent-p1.jsonl" 140000
-use "$T/proj/$L/subagents/agent-p2.jsonl" 141000
+use "$T/proj/$L/subagents/agent-p1.jsonl" 160000
+use "$T/proj/$L/subagents/agent-p2.jsonl" 161000
 tq() { printf '{"session_id":"%s","transcript_path":"%s","agent_id":"%s"}' "$1" "$T/proj/$1.jsonl" "$2" | bash "$REPO/claude/hooks/token-tracker.sh" PostToolUse; }
 for r in 1 2 3; do
   for p in "$S a1" "$S b2" "$S-other a1" "$L p1" "$L p2"; do tq $p > "$T/out-${p// /-}-$r" & done
@@ -214,7 +214,7 @@ done
 wait
 LEAK=0
 for r in 1 2 3; do
-  for want in "$S-a1 130.0k" "$S-b2 21.0k" "$S-other-a1 31.0k" "$L-p1 140.0k" "$L-p2 141.0k"; do
+  for want in "$S-a1 130.0k" "$S-b2 21.0k" "$S-other-a1 31.0k" "$L-p1 160.0k" "$L-p2 161.0k"; do
     saw "$(cat "$T/out-${want% *}-$r")" "Context: ${want#* } (this subagent)" | grep -q 0 || LEAK=$((LEAK+1))
   done
 done

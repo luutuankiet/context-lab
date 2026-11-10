@@ -87,7 +87,7 @@ SUBAGENT_CEILING="${SUBAGENT_CEILING:-160000}"
 # these lines it hands off to a fresh session. Its wrap-up is heavier than a
 # subagent's (collect subagents, commit, launch the successor), so the gap
 # between the two lines is its runway.
-ROOT_CHECKPOINT="${ROOT_CHECKPOINT:-140000}"
+ROOT_CHECKPOINT="${ROOT_CHECKPOINT:-160000}"
 ROOT_CEILING="${ROOT_CEILING:-200000}"
 
 # ---- Derive a filesystem-safe, per-session state key ----

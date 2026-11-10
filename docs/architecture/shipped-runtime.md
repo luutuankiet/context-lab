@@ -314,7 +314,7 @@ because the transcript is written asynchronously.
 
 The main thread cannot compact itself either: only the person at the keyboard
 can. So it gets the same two lines, later, and a different last step (`:369`).
-At 140k (`ROOT_CHECKPOINT`) it estimates its progress: at 80% or more it
+At 160k (`ROOT_CHECKPOINT`) it estimates its progress: at 80% or more it
 finishes; below that it starts no new subagents, waits for the running ones,
 and hands off. At 200k (`ROOT_CEILING`) it hands off without waiting, listing
 any subagent still running. The checkpoint sits below the ceiling by more than a
