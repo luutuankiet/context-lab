@@ -1,6 +1,6 @@
 ---
 name: nudge
-description: "Start a background sleep for auto resume after compaction
+description: "Start a background sleep for auto resume after compaction"
 disable-model-invocation: true
 ---
 
