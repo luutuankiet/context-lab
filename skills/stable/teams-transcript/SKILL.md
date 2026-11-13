@@ -1,6 +1,7 @@
 ---
 name: teams-transcript
 description: "Download a Microsoft Teams meeting transcript as text (JSON, VTT, markdown) when the recap's Download button is greyed out or missing. Use when asked to get, save or pull a Teams transcript or meeting recap into notes or project context."
+disable-model-invocation: true
 ---
 
 # Teams transcript download
