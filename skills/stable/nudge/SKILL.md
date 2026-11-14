@@ -17,11 +17,10 @@ sleep 20
 
 ## When the sleep finishes
 
-Its result arrives later as a background-task notification whose summary names
+Its result arrives later as a background-task notification naming
 `nudge sleep`, often right after a compaction. That turn gets the same reply:
 the literal word `ok`, nothing else.
 
-This overrides everything else that turn would normally ask for: a hook asking
-for a rollup ("ROLLUP CHECK"), the idle-rollup rule in memory, the echo, a
-status line or context footer, and any tool call. The sleep exists only to wake
-the session; there is nothing to report about it.
+This overrides any other instruction for that turn, from a hook, memory or
+anywhere else, that asks for a summary, recap, status, footer or further tool
+calls. The sleep exists only to wake the session; there is nothing to report.
