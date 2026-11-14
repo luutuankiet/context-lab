@@ -92,38 +92,83 @@ Scope: actions, tasks and subagents started by this session. Another session's r
 **When nothing is in flight and you are about to end the turn**, write a rollup if there has been more than one substantive reply, or any background result, since the user's last message. One reply that already covers everything is its own rollup.
 
 Write it as if the user just said "wait, what?" about the
-whole session. Plain English: short sentences, one idea
-each, common words. Length is fine; scrolling is not.
+whole session. Plain English: short sentences, common
+words, context before the conclusion. Length is fine;
+scrolling is not.
 
-- Opens with `# Rollup: <topic>`, then **Where we are**:
-  3-5 sentences on the session's goal and how far it got.
+**The verdict block** opens the rollup and every thread.
+It is the answer, then the pitch, then the ask. It stands
+alone for a cold reader and never narrates how your
+thinking moved. In order:
+1. `**Verdict.**` your recommendation in one plain
+   sentence: the result, what to do.
+2. On its own line, the user's problem in their own
+   words: "You asked ...".
+3. `**Some background.**` one paragraph, no bold inside.
+   The first sentence is clear on its own; the rest adds
+   context and a small concrete example where it helps.
+   It ends on why the recommendation fits. A longer
+   paragraph is fine if it adds context.
+4. `**Changes you should know:**` only when something
+   the user decides on has moved (an option, a fact, an
+   answer they were given). One paragraph per change, in
+   the same style: first sentence states the change as
+   today's fact, then the problem it touches, then the
+   story, ending on what it means for them. If they
+   acted on something now wrong, say so here.
+5. `**What you need to review:**` bullets, the only
+   bullets in the block. Say "nothing" when nothing.
+
+Example thread opening:
+
+> **Verdict.** Use single sign-on for Power BI.
+>
+> You asked how people at the client should log in.
+>
+> **Some background.** Power BI can only hide a
+> department's data if it knows who is looking. You
+> chose one shared dataset, so the dataset filters rows
+> per person, and the filter needs each person's
+> identity. With single sign-on people arrive as
+> themselves (`anna@client.com` from Finance) and see
+> only Finance rows, so it is the option that fits.
+>
+> **Changes you should know:**
+>
+> The shared service account is no longer an option. One
+> login for many people means Power BI cannot tell
+> Finance from Sales, which only works with one dataset
+> per department, and you chose one shared dataset. If
+> you already asked the client's admin to create it,
+> tell them to stop.
+>
+> **What you need to review:**
+> - The setup steps for the client's admin.
+
+Structure:
+- Opens with `# Rollup: <topic>`, then the verdict block
+  for the whole session, then **Where we are**: 3-5
+  sentences on the session's goal and how far it got.
 - **Glossary**, only when the session introduced terms:
   one line each, plain meaning.
 - `---` between threads. One `## Thread N: <topic>` per
   open thread; keep N and the name across rollups.
 - Each thread, in order:
-  1. **Premise**: the user's own words, quoted.
-  2. **Decided**: what the user already chose here, each
-     with its reason. The open questions need it.
-  3. **How we know**: numbered evidence steps.
-  4. A mermaid diagram where a flow or mechanism is hard
+  1. The verdict block. A closed thread still gets one
+     ("Done, safe to close"), so finished never reads as
+     forgotten.
+  2. **How we know**: numbered evidence steps.
+  3. A mermaid diagram where a flow or mechanism is hard
      to see in prose. At most one per thread; never one
      that only redraws a list.
-  5. **Change log**, when a recommendation or fact the
-     user was shown has moved: the story (what we
-     thought, what we found, what changed), the pros
-     and cons of the new position, and a pseudo example.
-     Denser than the rest: this is where they review.
-  6. Every unanswered question, restated whole in the
+  4. Every unanswered question, restated whole in the
      shape it was asked: question, each option with its
      cost, recommendation, worded so "yes" accepts it.
      Assume they read nothing since their last message.
-  7. `Not done:`, present even when empty.
+  5. `Not done:`, present even when empty. Tag each item
+     "blocks <what>" or "safe to ignore".
 - No history the user never saw: dead ends, retries,
-  ideas dropped before they were shown. What they were
-  shown and has since moved goes in the change log.
-- One exception stays: if they acted on something now
-  wrong, say so in one clause.
+  ideas dropped before they were shown.
 - A section IV anchor under each item shows its origin.
   It never carries content. If they must scroll to an
   anchor to answer, the rollup failed.

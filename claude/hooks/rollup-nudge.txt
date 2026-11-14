@@ -13,8 +13,9 @@ Shortcuts that fail this check:
   table only summarises questions restated above
 - "Q1-Q7 unchanged"; restate each one whole: question,
   options with cost, your recommendation
-- dropping "Decided" because the user answered it earlier;
-  the open questions make no sense without it
-- a changed recommendation with no change-log story and
-  pseudo example
+- a rollup or thread with no verdict block on top: your
+  recommendation, their problem in their words, the
+  background, what they need to review
+- a verdict that narrates how your thinking moved; say
+  what is true now, under "Changes you should know"
 - history the user never saw (dead ends, retries)
